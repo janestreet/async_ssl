@@ -1,0 +1,3 @@
+<**/*.ml{,i}>                : syntax_camlp4o
+# OASIS_START
+# OASIS_STOP

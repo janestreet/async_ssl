@@ -308,7 +308,8 @@ module Connection = struct
       (fun msg ->
          let err_msg = Exn.sexp_of_t msg |> Sexp.to_string in
          if verbose then Debug.amf _here_ "%s: ERROR: %s" t.name err_msg;
-         crash_and_burn t)
+         crash_and_burn t;
+         raise msg)
   ;;
 end
 

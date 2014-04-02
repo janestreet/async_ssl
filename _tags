@@ -1,3 +1,38 @@
 <**/*.ml{,i}>                : syntax_camlp4o
 # OASIS_START
+# DO NOT EDIT (digest: 0e46b831bf21f0f7d016929102e8fb20)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library async_ssl
+"lib/async_ssl.cmxs": use_async_ssl
+"lib/ffi.cmx": for-pack(Async_ssl)
+"lib/import.cmx": for-pack(Async_ssl)
+"lib/ssl.cmx": for-pack(Async_ssl)
+"lib/std.cmx": for-pack(Async_ssl)
+"lib/version.cmx": for-pack(Async_ssl)
+<lib/async_ssl.{cma,cmxa}>: oasis_library_async_ssl_cclib
+<lib/*.ml{,i}>: package(core)
+<lib/*.ml{,i}>: package(async)
+<lib/*.ml{,i}>: package(ctypes)
+<lib/*.ml{,i}>: package(ctypes.foreign)
+<lib/*.ml{,i}>: package(herelib)
+<lib/*.ml{,i}>: package(herelib.syntax)
+<lib/*.ml{,i}>: package(pa_bench)
+<lib/*.ml{,i}>: package(pa_bench.syntax)
+<lib/*.ml{,i}>: package(pa_ounit)
+<lib/*.ml{,i}>: package(pa_ounit.syntax)
+<lib/*.ml{,i}>: package(sexplib)
+<lib/*.ml{,i}>: package(sexplib.syntax)
+<lib/*.ml{,i}>: package(threads)
 # OASIS_STOP

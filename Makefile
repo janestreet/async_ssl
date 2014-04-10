@@ -27,7 +27,7 @@ export PROJ_stubgen
 
 define PROJ_async_ssl
   RESULT=async_ssl
-  INCDIRS = $(shell ocamlc -where)/.. foo
+  INCDIRS = $(shell ocamlfind query ctypes)/..
   SOURCES=lib/import.ml						\
 	  lib/version.ml            lib/version.mli		\
 	  lib/ffi_bindings.ml					\

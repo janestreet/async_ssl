@@ -1,7 +1,7 @@
 version = "111.08.00"
 description = "Async wrappers for ssl"
 requires =
-"core async ctypes ctypes.foreign herelib pa_bench pa_bench.syntax pa_ounit sexplib threads"
+"threads core async ctypes ctypes.stubs herelib pa_bench pa_bench.syntax pa_ounit sexplib"
 archive(byte) = "async_ssl.cma"
 archive(byte, plugin) = "async_ssl.cma"
 archive(native) = "async_ssl.cmxa"

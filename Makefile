@@ -1,28 +1,57 @@
-USE_CAMLP4=yes
+export USE_CAMLP4=yes
+export OCAMLMAKEFILE = ./OCamlMakefile
+export THREADS=yes
+export PACKS=sexplib.syntax,sexplib,pa_ounit.syntax,pa_ounit,pa_bench.syntax,\
+pa_bench,herelib.syntax,herelib,ctypes.stubs,async,core
+export LIB_PACK_NAME=Async_ssl
+export CLIBS=ssl crypto
+export OCAMLDEP = ocamldep -package $(PACKS) -syntax camlp4o
+export OCAMLFLAGS = -syntax camlp4o
+export LIBINSTALL_FILES = lib/ffi.mli lib/ssl.mli lib/version.mli \
+		   Async_ssl.cmi Async_ssl.cmo Async_ssl.cmx	  \
+		   async_ssl.cma async_ssl.cmxa async_ssl.a	  \
+		   META
 
-PACKS=sexplib.syntax,sexplib,pa_ounit.syntax,pa_ounit,pa_bench.syntax,pa_bench,herelib.syntax,herelib,ctypes.foreign,ctypes,async,core
+ifndef SUBPROJS
+   export SUBPROJS = stubgen async_ssl
+endif
 
-CLIBS=ssl crypto
+define PROJ_stubgen
+  RESULT=stubgen
+  SOURCES=lib/import.ml				\
+	  lib/version.ml      lib/version.mli	\
+	  lib/ffi_bindings.ml			\
+	  lib/ffi_stubgen.ml
+endef
+export PROJ_stubgen
 
-OCAMLDEP = ocamldep -package $(PACKS) -syntax camlp4o
-OCAMLFLAGS = -syntax camlp4o -thread
-RESULT=async_ssl
-LIB_PACK_NAME=Async_ssl
+define PROJ_async_ssl
+  RESULT=async_ssl
+  INCDIRS = $(shell ocamlc -where)/.. foo
+  SOURCES=lib/import.ml						\
+	  lib/version.ml            lib/version.mli		\
+	  lib/ffi_bindings.ml					\
+          lib/ffi_generated.ml      lib/ffi_generated.mli	\
+          lib/ffi_generated_stubs.c				\
+	  lib/ffi.ml                lib/ffi.mli			\
+	  lib/ssl.ml                lib/ssl.mli			\
+	  lib/std.ml
+endef
+export PROJ_async_ssl
 
-SOURCES=lib/import.ml				\
-	lib/version.ml      lib/version.mli	\
-        lib/ffi_bindings.ml			\
-	lib/ffi.ml          lib/ffi.mli		\
-	lib/ssl.ml          lib/ssl.mli		\
-	lib/std.ml
+all: stubs byte-code-library native-code-library
 
-LIBINSTALL_FILES = lib/ffi.mli lib/ssl.mli lib/version.mli \
-                   Async_ssl.cmi Async_ssl.cmo Async_ssl.cmx \
-                   async_ssl.cma async_ssl.cmxa async_ssl.a \
-                   META
+install: all
+	ocamlfind install async_ssl $(LIBINSTALL_FILES)
+uninstall:
+	ocamlfind remove async_ssl
 
-all: byte-code-library native-code-library
+stubgen: SUBPROJS=stubgen
+stubgen: nc
 
-install: libinstall
+stubs: stubgen
+	./$< -ml > lib/ffi_generated.ml
+	./$< -c > lib/ffi_generated_stubs.c
 
--include OCamlMakefile
+%:
+	@$(MAKE) -f $(OCAMLMAKEFILE) subprojs SUBTARGET=$@

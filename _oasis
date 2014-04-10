@@ -24,7 +24,8 @@ Library async_ssl
   Path:               lib
   FindlibName:        async_ssl
   Pack:               true
-  Modules:            Ffi,
+  Modules:            Ffi_bindings,
+                      Ffi,
                       Import,
                       Ssl,
                       Std,

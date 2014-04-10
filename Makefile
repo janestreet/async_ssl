@@ -1,53 +1,28 @@
-# Generic Makefile for oasis project
+USE_CAMLP4=yes
 
-# Set to setup.exe for the release
-SETUP := setup-dev.exe
+PACKS=sexplib.syntax,sexplib,pa_ounit.syntax,pa_ounit,pa_bench.syntax,pa_bench,herelib.syntax,herelib,ctypes.foreign,ctypes,async,core
 
-# Default rule
-default: build
+CLIBS=ssl crypto
 
-# Setup for the development version
-setup-dev.exe: _oasis setup.ml
-	grep -v '^#' setup.ml > setup_dev.ml
-	ocamlfind ocamlopt -o $@ -linkpkg -package ocamlbuild,oasis.dynrun setup_dev.ml || 	  ocamlfind ocamlc -o $@ -linkpkg -package ocamlbuild,oasis.dynrun setup_dev.ml || true
-	rm -f setup_dev.*
+OCAMLDEP = ocamldep -package $(PACKS) -syntax camlp4o
+OCAMLFLAGS = -syntax camlp4o -thread
+RESULT=async_ssl
+LIB_PACK_NAME=Async_ssl
 
-# Setup for the release
-setup.exe: setup.ml
-	ocamlopt.opt -o $@ $< || ocamlopt -o $@ $< || ocamlc -o $@ $<
-	rm -f setup.cmx setup.cmi setup.o setup.obj setup.cmo
+SOURCES=lib/import.ml				\
+	lib/version.ml      lib/version.mli	\
+        lib/ffi_bindings.ml			\
+	lib/ffi.ml          lib/ffi.mli		\
+	lib/ssl.ml          lib/ssl.mli		\
+	lib/std.ml
 
-build: $(SETUP) setup.data
-	./$(SETUP) -build $(BUILDFLAGS)
+LIBINSTALL_FILES = lib/ffi.mli lib/ssl.mli lib/version.mli \
+                   Async_ssl.cmi Async_ssl.cmo Async_ssl.cmx \
+                   async_ssl.cma async_ssl.cmxa async_ssl.a \
+                   META
 
-doc: $(SETUP) setup.data build
-	./$(SETUP) -doc $(DOCFLAGS)
+all: byte-code-library native-code-library
 
-test: $(SETUP) setup.data build
-	./$(SETUP) -test $(TESTFLAGS)
+install: libinstall
 
-all: $(SETUP)
-	./$(SETUP) -all $(ALLFLAGS)
-
-install: $(SETUP) setup.data
-	./$(SETUP) -install $(INSTALLFLAGS)
-
-uninstall: $(SETUP) setup.data
-	./$(SETUP) -uninstall $(UNINSTALLFLAGS)
-
-reinstall: $(SETUP) setup.data
-	./$(SETUP) -reinstall $(REINSTALLFLAGS)
-
-clean: $(SETUP)
-	./$(SETUP) -clean $(CLEANFLAGS)
-
-distclean: $(SETUP)
-	./$(SETUP) -distclean $(DISTCLEANFLAGS)
-
-configure: $(SETUP)
-	./$(SETUP) -configure $(CONFIGUREFLAGS)
-
-setup.data: $(SETUP)
-	./$(SETUP) -configure $(CONFIGUREFLAGS)
-
-.PHONY: default build doc test all install uninstall reinstall clean distclean configure
+-include OCamlMakefile

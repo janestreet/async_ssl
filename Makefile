@@ -1,6 +1,7 @@
 export USE_CAMLP4=yes
 export OCAMLMAKEFILE = ./OCamlMakefile
 export THREADS=yes
+export CFLAGS=-Wall -Wno-deprecated-declarations
 export PACKS=sexplib.syntax,sexplib,pa_ounit.syntax,pa_ounit,pa_bench.syntax,\
 pa_bench,herelib.syntax,herelib,ctypes.stubs,async,core
 export LIB_PACK_NAME=Async_ssl
@@ -10,6 +11,7 @@ export OCAMLFLAGS = -syntax camlp4o
 export LIBINSTALL_FILES = lib/ffi.mli lib/ssl.mli lib/version.mli \
 		   Async_ssl.cmi Async_ssl.cmo Async_ssl.cmx	  \
 		   async_ssl.cma async_ssl.cmxa async_ssl.a	  \
+		   libasync_ssl_stubs.a dllasync_ssl_stubs.so     \
 		   META
 
 ifndef SUBPROJS

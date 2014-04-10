@@ -11,6 +11,7 @@ export OCAMLFLAGS = -syntax camlp4o
 export LIBINSTALL_FILES = lib/ffi.mli lib/ssl.mli lib/version.mli \
 		   Async_ssl.cmi Async_ssl.cmo Async_ssl.cmx	  \
 		   async_ssl.cma async_ssl.cmxa async_ssl.a	  \
+		   libasync_ssl_stubs.a dllasync_ssl_stubs.so     \
 		   META
 
 ifndef SUBPROJS

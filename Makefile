@@ -1,53 +1,59 @@
-# Generic Makefile for oasis project
+export USE_CAMLP4=yes
+export OCAMLMAKEFILE = ./OCamlMakefile
+export THREADS=yes
+export CFLAGS=-Wall -Wno-deprecated-declarations
+export PACKS=sexplib.syntax,sexplib,pa_ounit.syntax,pa_ounit,pa_bench.syntax,\
+pa_bench,herelib.syntax,herelib,ctypes.stubs,async,core
+export LIB_PACK_NAME=Async_ssl
+export CLIBS=ssl crypto
+export OCAMLDEP = ocamldep -package $(PACKS) -syntax camlp4o
+export OCAMLFLAGS = -syntax camlp4o
+export LIBINSTALL_FILES = lib/ffi.mli lib/ssl.mli lib/version.mli \
+		   Async_ssl.cmi Async_ssl.cmo Async_ssl.cmx	  \
+		   async_ssl.cma async_ssl.cmxa async_ssl.a	  \
+		   libasync_ssl_stubs.a dllasync_ssl_stubs.so     \
+		   META
 
-# Set to setup.exe for the release
-SETUP := setup-dev.exe
+ifndef SUBPROJS
+   export SUBPROJS = stubgen async_ssl
+endif
 
-# Default rule
-default: build
+define PROJ_stubgen
+  RESULT=stubgen
+  SOURCES=lib/import.ml				\
+	  lib/version.ml      lib/version.mli	\
+	  lib/ffi_bindings.ml			\
+	  lib/ffi_stubgen.ml
+endef
+export PROJ_stubgen
 
-# Setup for the development version
-setup-dev.exe: _oasis setup.ml
-	grep -v '^#' setup.ml > setup_dev.ml
-	ocamlfind ocamlopt -o $@ -linkpkg -package ocamlbuild,oasis.dynrun setup_dev.ml || 	  ocamlfind ocamlc -o $@ -linkpkg -package ocamlbuild,oasis.dynrun setup_dev.ml || true
-	rm -f setup_dev.*
+define PROJ_async_ssl
+  RESULT=async_ssl
+  INCDIRS = $(shell ocamlfind query ctypes)/..
+  SOURCES=lib/import.ml						\
+	  lib/version.ml            lib/version.mli		\
+	  lib/ffi_bindings.ml					\
+          lib/ffi_generated.ml      lib/ffi_generated.mli	\
+          lib/ffi_generated_stubs.c				\
+	  lib/ffi.ml                lib/ffi.mli			\
+	  lib/ssl.ml                lib/ssl.mli			\
+	  lib/std.ml
+endef
+export PROJ_async_ssl
 
-# Setup for the release
-setup.exe: setup.ml
-	ocamlopt.opt -o $@ $< || ocamlopt -o $@ $< || ocamlc -o $@ $<
-	rm -f setup.cmx setup.cmi setup.o setup.obj setup.cmo
+all: stubs byte-code-library native-code-library
 
-build: $(SETUP) setup.data
-	./$(SETUP) -build $(BUILDFLAGS)
+install: all
+	ocamlfind install async_ssl $(LIBINSTALL_FILES)
+uninstall:
+	ocamlfind remove async_ssl
 
-doc: $(SETUP) setup.data build
-	./$(SETUP) -doc $(DOCFLAGS)
+stubgen: SUBPROJS=stubgen
+stubgen: nc
 
-test: $(SETUP) setup.data build
-	./$(SETUP) -test $(TESTFLAGS)
+stubs: stubgen
+	./$< -ml > lib/ffi_generated.ml
+	./$< -c > lib/ffi_generated_stubs.c
 
-all: $(SETUP)
-	./$(SETUP) -all $(ALLFLAGS)
-
-install: $(SETUP) setup.data
-	./$(SETUP) -install $(INSTALLFLAGS)
-
-uninstall: $(SETUP) setup.data
-	./$(SETUP) -uninstall $(UNINSTALLFLAGS)
-
-reinstall: $(SETUP) setup.data
-	./$(SETUP) -reinstall $(REINSTALLFLAGS)
-
-clean: $(SETUP)
-	./$(SETUP) -clean $(CLEANFLAGS)
-
-distclean: $(SETUP)
-	./$(SETUP) -distclean $(DISTCLEANFLAGS)
-
-configure: $(SETUP)
-	./$(SETUP) -configure $(CONFIGUREFLAGS)
-
-setup.data: $(SETUP)
-	./$(SETUP) -configure $(CONFIGUREFLAGS)
-
-.PHONY: default build doc test all install uninstall reinstall clean distclean configure
+%:
+	@$(MAKE) -f $(OCAMLMAKEFILE) subprojs SUBTARGET=$@

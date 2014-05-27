@@ -1,0 +1,15 @@
+*.a
+*.o
+*.cmx
+*.cmxa
+*.cmo
+*.cmi
+*.so
+*.cma
+._bcdi/
+._d/
+._ncdi/
+.*.swp
+stubgen
+lib/ffi_generated.ml
+lib/ffi_generated_stubs.c

@@ -1,3 +1,74 @@
 <**/*.ml{,i}>: syntax_camlp4o
 # OASIS_START
+# DO NOT EDIT (digest: 2f5d9d6882af449b7793f27ff99460c7)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library async_ssl
+"lib/async_ssl.cmxs": use_async_ssl
+"lib/ffi.cmx": for-pack(Async_ssl)
+"lib/ffi_bindings.cmx": for-pack(Async_ssl)
+"lib/ffi_generated.cmx": for-pack(Async_ssl)
+"lib/import.cmx": for-pack(Async_ssl)
+"lib/ssl.cmx": for-pack(Async_ssl)
+"lib/std.cmx": for-pack(Async_ssl)
+"lib/version.cmx": for-pack(Async_ssl)
+<lib/*.ml{,i}>: oasis_library_async_ssl_ccopt
+"lib/ffi_generated_stubs.c": oasis_library_async_ssl_ccopt
+<lib/async_ssl.{cma,cmxa}>: oasis_library_async_ssl_cclib
+"lib/libasync_ssl_stubs.lib": oasis_library_async_ssl_cclib
+"lib/dllasync_ssl_stubs.dll": oasis_library_async_ssl_cclib
+"lib/libasync_ssl_stubs.a": oasis_library_async_ssl_cclib
+"lib/dllasync_ssl_stubs.so": oasis_library_async_ssl_cclib
+<lib/async_ssl.{cma,cmxa}>: use_libasync_ssl_stubs
+"lib/ffi_generated_stubs.c": package(async)
+"lib/ffi_generated_stubs.c": package(core)
+"lib/ffi_generated_stubs.c": package(ctypes)
+"lib/ffi_generated_stubs.c": package(ctypes.stubs)
+"lib/ffi_generated_stubs.c": package(herelib)
+"lib/ffi_generated_stubs.c": package(herelib.syntax)
+"lib/ffi_generated_stubs.c": package(pa_bench)
+"lib/ffi_generated_stubs.c": package(pa_bench.syntax)
+"lib/ffi_generated_stubs.c": package(pa_ounit)
+"lib/ffi_generated_stubs.c": package(pa_ounit.syntax)
+"lib/ffi_generated_stubs.c": package(sexplib)
+"lib/ffi_generated_stubs.c": package(sexplib.syntax)
+"lib/ffi_generated_stubs.c": package(threads)
+# Executable ffi_stubgen
+"lib/ffi_stubgen.byte": package(async)
+"lib/ffi_stubgen.byte": package(core)
+"lib/ffi_stubgen.byte": package(ctypes)
+"lib/ffi_stubgen.byte": package(ctypes.stubs)
+"lib/ffi_stubgen.byte": package(herelib)
+"lib/ffi_stubgen.byte": package(herelib.syntax)
+"lib/ffi_stubgen.byte": package(pa_bench)
+"lib/ffi_stubgen.byte": package(pa_bench.syntax)
+"lib/ffi_stubgen.byte": package(pa_ounit)
+"lib/ffi_stubgen.byte": package(pa_ounit.syntax)
+"lib/ffi_stubgen.byte": package(sexplib)
+"lib/ffi_stubgen.byte": package(sexplib.syntax)
+"lib/ffi_stubgen.byte": package(threads)
+<lib/*.ml{,i}>: package(async)
+<lib/*.ml{,i}>: package(core)
+<lib/*.ml{,i}>: package(ctypes)
+<lib/*.ml{,i}>: package(ctypes.stubs)
+<lib/*.ml{,i}>: package(herelib)
+<lib/*.ml{,i}>: package(herelib.syntax)
+<lib/*.ml{,i}>: package(pa_bench)
+<lib/*.ml{,i}>: package(pa_bench.syntax)
+<lib/*.ml{,i}>: package(pa_ounit)
+<lib/*.ml{,i}>: package(pa_ounit.syntax)
+<lib/*.ml{,i}>: package(sexplib)
+<lib/*.ml{,i}>: package(sexplib.syntax)
+<lib/*.ml{,i}>: package(threads)
 # OASIS_STOP

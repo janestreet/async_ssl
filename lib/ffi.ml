@@ -2,7 +2,7 @@ open Core.Std
 open Async.Std
 open Import
 
-module Bindings = Ffi_bindings.Bindings(Ffi_generated)
+module Bindings = Async_ssl_bindings.Ffi_bindings.Bindings(Ffi_generated)
 
 module Ssl_error = struct
   type t =

@@ -1,3 +1,7 @@
+## 112.17.00
+
+- moved ffi_bindings and ffi_stubgen in separate libraries
+
 ## 111.21.00
 
 - Upgraded to use new ctypes and its new stub generation methods.

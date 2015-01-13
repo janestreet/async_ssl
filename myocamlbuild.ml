@@ -3,17 +3,19 @@
 
 let dispatch = function
   | After_rules ->
+    let stubgen = "stubgen/ffi_stubgen.byte" in
+
     rule "generated ml"
-      ~dep:"lib/ffi_stubgen.byte"
+      ~dep:stubgen
       ~prod:"lib/ffi_generated.ml"
       (fun _ _ ->
-         Cmd(S[P"lib/ffi_stubgen.byte"; A"-ml"; Sh">"; A"lib/ffi_generated.ml"]));
+         Cmd(S[P stubgen; A"-ml"; Sh">"; A"lib/ffi_generated.ml"]));
 
     rule "generated c"
-      ~dep:"lib/ffi_stubgen.byte"
+      ~dep:stubgen
       ~prod:"lib/ffi_generated_stubs.c"
       (fun _ _ ->
-         Cmd(S[P"lib/ffi_stubgen.byte"; A"-c"; Sh">"; A"lib/ffi_generated_stubs.c"]))
+         Cmd(S[P stubgen; A"-c"; Sh">"; A"lib/ffi_generated_stubs.c"]))
 
   | _ ->
     ()

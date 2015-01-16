@@ -1,0 +1,45 @@
+(* OASIS_START *)
+(* DO NOT EDIT (digest: 17c3d573d5dc0162e3e014a5c6ea7f65) *)
+
+This is the INSTALL file for the async_ssl distribution.
+
+This package uses OASIS to generate its build system. See section OASIS for
+full information.
+
+Dependencies
+============
+
+In order to compile this package, you will need:
+
+* ocaml (>= 4.00.0)
+* findlib (>= 1.3.2)
+* ctypes for library async_ssl, library async_ssl_bindings
+* core for library async_ssl
+* async for library async_ssl
+* herelib for library async_ssl
+* pa_bench for library async_ssl
+* pa_ounit for library async_ssl
+* sexplib for library async_ssl
+
+Installing
+==========
+
+1. Uncompress the source archive and go to the root of the package
+2. Run 'ocaml setup.ml -configure'
+3. Run 'ocaml setup.ml -build'
+4. Run 'ocaml setup.ml -install'
+
+Uninstalling
+============
+
+1. Go to the root of the package
+2. Run 'ocaml setup.ml -uninstall'
+
+OASIS
+=====
+
+OASIS is a program that generates a setup.ml file using a simple '_oasis'
+configuration file. The generated setup only depends on the standard OCaml
+installation: no additional library is required.
+
+(* OASIS_STOP *)

@@ -1,3 +1,11 @@
+## 112.24.00
+
+- By default OpenSSL ignores the result of certificate validation, so we need to
+  tell it not to.
+
+- Expose session details such as checked certificates and negotiated version.
+  Add session resumption.
+
 ## 112.17.00
 
 - moved ffi_bindings and ffi_stubgen in separate libraries

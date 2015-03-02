@@ -4,9 +4,31 @@ open Import
 
 module Version = Version
 
+module Certificate = struct
+  type t = Ffi.X509.t
+
+  let subject t =
+    let open Ffi in
+    let subject = X509.get_subject_name t in
+    let count = X509_name.entry_count subject in
+    List.init count ~f:(fun i ->
+      let entry = X509_name.get_entry subject i in
+      let sn =
+        X509_name_entry.get_object entry
+        |> ASN1_object.obj2nid
+        |> ASN1_object.nid2sn
+      in
+      let data =
+        X509_name_entry.get_data entry
+        |> ASN1_string.data
+      in
+      sn, data)
+end
+
 module Connection = struct
   type t =
     { ssl              : Ffi.Ssl.t
+    ; ctx              : Ffi.Ssl_ctx.t
     ; client_or_server : [ `Client | `Server ]
     (* The reader and writer binary IO interfaces used by SSL to exchange data without
        going through a file descriptor.  Strangely enough, to use SSL we _read from_ wbio
@@ -21,8 +43,8 @@ module Connection = struct
     ; ssl_to_app       : string Pipe.Writer.t
     ; net_to_ssl       : string Pipe.Reader.t
     ; ssl_to_net       : string Pipe.Writer.t
-    }
-  with sexp_of
+    ; closed           : unit Or_error.t Ivar.t
+    } with sexp_of, fields
 
   let create_exn ctx version client_or_server name
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
@@ -34,15 +56,22 @@ module Connection = struct
     let wbio = Ffi.Bio.create () in
     let default_buffer_size = 16 * 1024 in
     let bstr = Bigstring.create default_buffer_size in
+    (* The default is VERIFY_NONE which defers the decision to abort the
+       connection to the caller. The caller must be careful to check that the
+       certificate verified correctly. *)
+    (* Ffi.Ssl.set_verify ssl [Ffi.Verify_mode.Verify_peer]; *)
     Ffi.Ssl.set_bio ssl ~input:rbio ~output:wbio;
+    let closed = Ivar.create () in
     { ssl; client_or_server; rbio; wbio; bstr; name
     ; app_to_ssl; ssl_to_app; net_to_ssl; ssl_to_net
+    ; closed; ctx
     }
   ;;
 
-  let create_client_exn ?name:(nm="(anonymous)") ctx version
+  let create_client_exn ?name:(nm="(anonymous)") ?session ctx version
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
-    create_exn ctx version `Client nm ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net
+    create_exn ctx version `Client nm ~app_to_ssl ~ssl_to_app ~net_to_ssl
+      ~ssl_to_net
   ;;
 
   let create_server_exn ?name:(nm="(anonymous)") ctx version ~crt_file ~key_file
@@ -70,6 +99,7 @@ module Connection = struct
         Ffi.Ssl.use_private_key_file connection.ssl ~key:key_file ~file_type)
       ~on_fail:(fun () -> failwithf "Could not load private key file @ %s" key_file ())
     >>= fun () ->
+    Or_error.ok_exn (Ffi.Ssl.check_private_key connection.ssl);
     return connection
   ;;
 
@@ -77,13 +107,33 @@ module Connection = struct
     failwiths "Ssl_error" (Ffi.get_error_stack ()) <:sexp_of< string list >>
   ;;
 
+  let closed t =
+    Ivar.read t.closed
+
+  let version t =
+    Ffi.Ssl.get_version t.ssl
+
+  let session_reused t =
+    Ffi.Ssl.session_reused t.ssl
+
+  let peer_certificate t =
+    match Ffi.Ssl.get_peer_certificate t.ssl with
+    | None -> None
+    | Some cert ->
+      match Ffi.Ssl.get_verify_result t.ssl with
+      | Ok () -> Some (Ok cert)
+      | Error e -> Some (Error e)
+
   let blen t = Bigstring.length t.bstr
 
   let bptr t = Ctypes.bigarray_start Ctypes.array1 t.bstr
 
   (* Called when something goes horribly wrong. This makes sure that
-     resources don't leak when exceptional circumstances hit. *)
-  let crash_and_burn t =
+     resources don't leak when exceptional circumstances hit.
+
+     The SSL structure itself is freed by the GC finalizer.
+  *)
+  let cleanup t =
     if verbose then Debug.amf _here_ "%s: crash_and_burn" t.name;
     Pipe.close_read t.app_to_ssl;
     Pipe.close      t.ssl_to_app;
@@ -286,13 +336,11 @@ module Connection = struct
     | Ok _ -> if verbose then Debug.amf _here_ "%s: Handshake complete!" t.name;
     | Error _ ->
       if verbose then Debug.amf _here_ "%s: Handshake failed!" t.name;
-      crash_and_burn t;
+      cleanup t;
   ;;
 
   (* Run both independent data pumps at once. *)
   let start_loops t =
-    run_handshake t
-    >>= fun () ->
     Deferred.all_unit
       [ run_reader_loop t
       ; run_writer_loop t
@@ -301,22 +349,61 @@ module Connection = struct
     if verbose then Debug.amf _here_ "%s: SSL stopped." t.name
   ;;
 
-  let attach t =
-    (* Close all pipes if exceptions leak out.  This will implicitly stop
-       [run_reader_loop] and [run_writer_loop], since they'll just keep getting EOFs. *)
-    Monitor.handle_errors ~name:"ssl_pipe" (fun () -> start_loops t)
-      (fun msg ->
-         let err_msg = Exn.sexp_of_t msg |> Sexp.to_string in
-         if verbose then Debug.amf _here_ "%s: ERROR: %s" t.name err_msg;
-         crash_and_burn t;
-         raise msg)
+  (* Close all pipes if exceptions leak out.  This will implicitly stop
+     [run_reader_loop] and [run_writer_loop], since they'll just keep getting EOFs. *)
+  let with_cleanup t ~f =
+    Deferred.Or_error.try_with ~name:"ssl_pipe" f
+    >>| fun result ->
+    Result.iter_error result ~f:(fun error ->
+      if verbose
+      then Debug.amf _here_ "%s: ERROR: %s" t.name (Error.to_string_hum error);
+      cleanup t);
+    result
   ;;
+end
+
+module Session = struct
+  module State = struct
+    type t =
+      { session : Ffi.Ssl_session.t
+      (* One SSL_SESSION object must only be used with one SSL_CTX object *)
+      ; ctx : Ffi.Ssl_ctx.t
+      }
+
+    let get ~conn =
+      match Ffi.Ssl.get1_session (Connection.ssl conn) with
+      | None ->
+        if verbose
+        then Debug.amf _here_ "no session available for connection %s"
+               (Connection.name conn);
+        None
+      | Some session -> Some { session; ctx = Connection.ctx conn }
+
+    let reuse t ~conn =
+      if not (phys_equal t.ctx (Connection.ctx conn))
+      then failwithf "Trying to reuse %s with a different context \
+                      (did you change ca_file or ca_path?)"
+             (Connection.name conn) ();
+      Ffi.Ssl.set_session (Connection.ssl conn) t.session |> Or_error.ok_exn
+  end
+
+  type t = State.t Set_once.t
+
+  let create () = Set_once.create ()
+
+  let remember t ~conn =
+    match Set_once.get t with
+    | Some _ -> ()
+    | None -> Option.iter (State.get ~conn) ~f:(Set_once.set_exn t)
+
+  let reuse t ~conn =
+    Option.iter (Set_once.get t) ~f:(State.reuse ~conn)
 end
 
 (* Global SSL contexts for every needed permutation of certification file/path. *)
 let contexts =
   Memo.general (fun (ca_file, ca_path) ->
-    let ctx = Ffi.Ssl_ctx.create_exn Version.Tlsv1 in
+    let ctx = Ffi.Ssl_ctx.create_exn Version.default in
     begin match ca_file, ca_path with
       | None, None -> return (Ok ())
       | _, _       -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
@@ -326,32 +413,54 @@ let contexts =
       | Ok ()   -> Ok ctx)
 ;;
 
-let context_exn arg =
+let context_exn ~name arg =
   contexts arg
   >>| function
-  | Ok context -> context
+  | Ok context ->
+    let name = Option.value name ~default:"default_session_context" in
+    (* This prevents "session id context uninitialized" errors when setting
+       verify mode to VERIFY_PEER. We don't set verify mode currently, but it's
+       worth keeping this since it doesn't do harm. *)
+    Ffi.Ssl_ctx.set_context_session_id context name;
+    context
   | Error e -> failwiths "Could not initialize ssl context" e <:sexp_of< Error.t >>
 ;;
 
-let default_version = Version.Tlsv1
-
-let client ?version:(version = default_version) ?name ?ca_file ?ca_path
+let client ?version:(version = Version.default) ?name ?ca_file ?ca_path ?session
       ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
-  context_exn (ca_file, ca_path)
-  >>= fun context ->
-  Connection.attach (Connection.create_client_exn ?name context version
-                       ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)
+  Deferred.Or_error.try_with (fun () ->
+    context_exn ~name (ca_file, ca_path)
+    >>| fun context ->
+    Connection.create_client_exn ?name ?session context version
+        ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)
+  >>=? fun conn ->
+  Option.iter session ~f:(Session.reuse ~conn);
+  Connection.with_cleanup conn ~f:(fun () -> Connection.run_handshake conn)
+  >>=? fun () ->
+  Option.iter session ~f:(Session.remember ~conn);
+  don't_wait_for begin
+    Connection.with_cleanup conn ~f:(fun () -> Connection.start_loops conn)
+    >>| Ivar.fill conn.closed
+  end;
+  return (Ok conn)
 ;;
 
-let server ?version:(version = default_version) ?name ?ca_file ?ca_path
+let server ?version:(version = Version.default) ?name ?ca_file ?ca_path
       ~crt_file ~key_file
       ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
-  context_exn (ca_file, ca_path)
-  >>= fun context ->
-  Connection.create_server_exn ?name context version ~crt_file ~key_file
-    ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net
-  >>= fun conn ->
-  Connection.attach conn
+  Deferred.Or_error.try_with (fun () ->
+    context_exn ~name (ca_file, ca_path)
+    >>= fun context ->
+    Connection.create_server_exn ?name context version ~crt_file ~key_file
+      ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)
+  >>=? fun conn ->
+  Connection.with_cleanup conn ~f:(fun () -> Connection.run_handshake conn)
+  >>=? fun () ->
+  don't_wait_for begin
+    Connection.with_cleanup conn ~f:(fun () -> Connection.start_loops conn)
+    >>| Ivar.fill conn.closed
+  end;
+  return (Ok conn)
 ;;
 
 TEST_MODULE = struct
@@ -383,7 +492,26 @@ TEST_MODULE = struct
 
   (* Create both a client and a server, and send hello world back and forth. *)
   TEST_UNIT =
-    let run_test () =
+    let session = Session.create () in
+    let check_server_certificate client_conn =
+      let cert =
+        Connection.peer_certificate client_conn
+        |> Option.value_exn
+        |> Or_error.ok_exn
+      in
+      let (_, value) =
+        Certificate.subject cert
+        |> List.find_exn ~f:(fun (sn, _) -> sn = "CN")
+      in
+      assert (value = "testbox")
+    in
+    let check_version conn =
+      <:test_result<Version.t>> (Connection.version conn) ~expect:Version.default
+    in
+    let check_session_reused conn ~expect =
+      <:test_result<bool>> (Connection.session_reused conn) ~expect
+    in
+    let run_test ~expect_session_reused =
       if verbose then Debug.amf _here_ "0";
       (* Refer to the above ascii art! *)
       let (l, j) = Pipe.create () in
@@ -396,7 +524,7 @@ TEST_MODULE = struct
       let (server_in, server_out) = (l, k) in
       if verbose then Debug.amf _here_ "1";
       (* attach the server to ssl 2 to net *)
-      let server_done =
+      let server_conn =
         server
           ~name:"server"
           ~crt_file:"do_not_use_in_production.crt"
@@ -408,15 +536,27 @@ TEST_MODULE = struct
           ()
       in
       (* attach the client to ssl 1 to net *)
-      let client_done =
+      let client_conn =
         client
           ~name:"client"
+          (* Necessary to verify the self-signed server certificate. *)
+          ~ca_file:"do_not_use_in_production.crt"
+          ~session
           ~app_to_ssl:c
           ~ssl_to_app:d
           ~ssl_to_net:e
           ~net_to_ssl:f
           ()
       in
+      let client_conn = client_conn >>| Or_error.ok_exn in
+      let server_conn = server_conn >>| Or_error.ok_exn in
+      Deferred.both client_conn server_conn
+      >>= fun (client_conn, server_conn) ->
+      check_server_certificate client_conn;
+      check_version client_conn;
+      check_version server_conn;
+      check_session_reused client_conn ~expect:expect_session_reused;
+      check_session_reused server_conn ~expect:expect_session_reused;
       if verbose then Debug.amf _here_ "2";
       Pipe.write client_out "hello, server." |> don't_wait_for;
       if verbose then Debug.amf _here_ "3";
@@ -432,12 +572,6 @@ TEST_MODULE = struct
       pipe_to_string client_in
       >>= fun on_client ->
       if verbose then Debug.amf _here_ "8";
-      if on_server <> "hello, server."
-      then failwiths "No hello world to server" on_server <:sexp_of< string >>;
-      if verbose then Debug.amf _here_ "9";
-      if on_client <> "hello, client."
-      then failwiths "No hello world to client" on_client <:sexp_of< string >>;
-      if verbose then Debug.amf _here_ "10";
       (* check that all the pipes are closed *)
       check_closed a "client_in";
       check_closed b "client_out";
@@ -451,12 +585,25 @@ TEST_MODULE = struct
       check_closed j "j";
       check_closed k "server_in";
       check_closed l "server_out";
-      if verbose then Debug.amf _here_ "11";
-      client_done
-      >>= fun () ->
-      server_done
+      if verbose then Debug.amf _here_ "9";
+      Connection.closed client_conn
+      >>= fun client_exit_status ->
+      Or_error.ok_exn client_exit_status;
+      Connection.closed server_conn
+      >>= fun server_exit_status ->
+      Or_error.ok_exn server_exit_status;
+      if on_server <> "hello, server."
+      then failwiths "No hello world to server" on_server <:sexp_of< string >>;
+      if on_client <> "hello, client."
+      then failwiths "No hello world to client" on_client <:sexp_of< string >>;
+      return ()
     in
-    Thread_safe.block_on_async_exn run_test
+    let run_twice () =
+      run_test ~expect_session_reused:false
+      >>= fun () ->
+      run_test ~expect_session_reused:true
+    in
+    Thread_safe.block_on_async_exn run_twice
   ;;
 
   BENCH "ssl_stress_test" =
@@ -471,7 +618,7 @@ TEST_MODULE = struct
     let (client_in, client_out) = (b, a) in
     let (server_in, server_out) = (l, k) in
     (* attach the server to ssl 2 to net *)
-    let server_done =
+    let server_conn =
       server
         ~name:"server"
         ~crt_file:"do_not_use_in_production.crt"
@@ -483,7 +630,7 @@ TEST_MODULE = struct
         ()
     in
     (* attach the client to ssl 1 to net *)
-    let client_done =
+    let client_conn =
       client
         ~name:"client"
         ~app_to_ssl:c
@@ -492,6 +639,10 @@ TEST_MODULE = struct
         ~net_to_ssl:f
         ()
     in
+    Deferred.both client_conn server_conn
+    >>= fun (client_conn, server_conn) ->
+    let client_conn = Or_error.ok_exn client_conn in
+    let server_conn = Or_error.ok_exn server_conn in
     let rec cycle k =
       if k = 0 then begin
         Pipe.close client_out;
@@ -521,9 +672,13 @@ TEST_MODULE = struct
     in
     cycle 1_000
     >>= fun () ->
-    client_done
-    >>= fun () ->
-    server_done
+    Connection.closed client_conn
+    >>= fun client_exit_status ->
+    Or_error.ok_exn client_exit_status;
+    Connection.closed server_conn
+    >>= fun server_exit_status ->
+    Or_error.ok_exn server_exit_status;
+    return ()
   in
   Thread_safe.block_on_async_exn run_bench
 ;;

@@ -25,8 +25,16 @@ module Ssl_error : sig
   with sexp_of
 end
 
-module Ssl_ctx : sig
+module Verify_mode : sig
+  type t =
+    | Verify_none
+    | Verify_peer
+    | Verify_fail_if_no_peer_cert
+    | Verify_client_once
+  with sexp_of
+end
 
+module Ssl_ctx : sig
   type t with sexp_of
 
   (** Initialize a new SSL context, out of which all SSL connections are allocated. *)
@@ -58,10 +66,11 @@ module Ssl_ctx : sig
     -> ?ca_path:string
     -> t
     -> unit Or_error.t Deferred.t
+
+  val set_context_session_id : t -> string -> unit
 end
 
 module Bio : sig
-
   type t with sexp_of
 
   (** Create a new 'infinite' memory-backed IO queue, to replace a socket that openssl
@@ -83,6 +92,46 @@ module Bio : sig
       return value is -2 then the operation is not implemented in the specific BIO
       type. *)
   val write : t -> buf:string -> len:int -> int
+end
+
+module ASN1_object : sig
+  type t
+
+  val obj2nid : t -> int
+  val nid2sn : int -> string
+end
+
+module ASN1_string : sig
+  type t
+
+  val data : t -> string
+end
+
+module X509_name_entry : sig
+  type t
+
+  val get_object : t -> ASN1_object.t
+  val get_data : t -> ASN1_string.t
+end
+
+module X509_name : sig
+  type t
+
+  val entry_count : t -> int
+
+  val get_entry : t -> int -> X509_name_entry.t
+end
+
+module X509 : sig
+  type t
+
+  val get_subject_name : t -> X509_name.t
+end
+
+module Ssl_session : sig
+  type t
+
+  val create_exn : unit -> t
 end
 
 (* Represents an SSL connection. This follows the naming convention of libopenssl, but
@@ -135,6 +184,23 @@ module Ssl : sig
     -> key:string
     -> file_type:[ `PEM | `ASN1 ]
     -> (unit, string list) Result.t Deferred.t
+
+  val check_private_key : t -> unit Or_error.t
+
+  val set_verify : t -> Verify_mode.t list -> unit
+
+  val get_peer_certificate : t -> X509.t option
+
+  (* Returns Ok () if there is no peer certificate. *)
+  val get_verify_result : t -> unit Or_error.t
+
+  val get_version : t -> Version.t
+
+  val session_reused : t -> bool
+
+  val set_session : t -> Ssl_session.t -> unit Or_error.t
+
+  val get1_session : t -> Ssl_session.t option
 end
 
 (** Pops all errors off of the openssl error stack, returning them as a list of

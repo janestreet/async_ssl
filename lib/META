@@ -1,0 +1,23 @@
+# OASIS_START
+# DO NOT EDIT (digest: 86fb982d807093de2abbc9ea8c7cc664)
+version = "112.24.00"
+description = "Async wrappers for ssl"
+requires =
+"async_ssl.bindings core async ctypes ctypes.stubs fieldslib herelib pa_bench pa_bench.syntax pa_ounit pa_test sexplib threads"
+archive(byte) = "async_ssl.cma"
+archive(byte, plugin) = "async_ssl.cma"
+archive(native) = "async_ssl.cmxa"
+archive(native, plugin) = "async_ssl.cmxs"
+exists_if = "async_ssl.cma"
+package "bindings" (
+ version = "112.24.00"
+ description = "Async wrappers for ssl"
+ requires = "ctypes ctypes.stubs"
+ archive(byte) = "async_ssl_bindings.cma"
+ archive(byte, plugin) = "async_ssl_bindings.cma"
+ archive(native) = "async_ssl_bindings.cmxa"
+ archive(native, plugin) = "async_ssl_bindings.cmxs"
+ exists_if = "async_ssl_bindings.cma"
+)
+# OASIS_STOP
+

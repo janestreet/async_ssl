@@ -129,7 +129,7 @@ module Ssl_ctx = struct
   let set_context_session_id =
     fun context id ->
       begin
-        let session_id = Ctypes_packed.Std_views.char_ptr_of_string id in
+        let session_id = Ctypes.(coerce string (ptr char)) id in
         match
           Bindings.Ssl_ctx.set_session_id_context context session_id
             (Unsigned.UInt.of_int (String.length id))

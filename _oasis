@@ -32,16 +32,21 @@ Library async_ssl
                       Version
   CSources:           ffi_generated_stubs.c
   BuildDepends:       async_ssl.bindings,
+                      comparelib.syntax,
                       core,
                       async,
                       ctypes,
                       ctypes.stubs,
+                      fieldslib.syntax,
                       herelib,
                       herelib.syntax,
                       pa_bench,
                       pa_bench.syntax,
                       pa_ounit,
                       pa_ounit.syntax,
+                      pa_pipebang,
+                      pa_test,
+                      pa_test.syntax,
                       sexplib,
                       sexplib.syntax,
                       threads
@@ -50,10 +55,12 @@ Library async_ssl
                       async,
                       ctypes,
                       ctypes.stubs,
+                      fieldslib,
                       herelib,
                       pa_bench,
                       pa_bench.syntax,
                       pa_ounit,
+                      pa_test,
                       sexplib,
                       threads
   CCLib:              -lssl -lcrypto

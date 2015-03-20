@@ -15,7 +15,9 @@ let dispatch = function
       ~dep:stubgen
       ~prod:"lib/ffi_generated_stubs.c"
       (fun _ _ ->
-         Cmd(S[P stubgen; A"-c"; Sh">"; A"lib/ffi_generated_stubs.c"]))
+         Cmd(S[P stubgen; A"-c"; Sh">"; A"lib/ffi_generated_stubs.c"]));
+
+    flag ["c"; "compile"] & S[A"-I"; A"lib"; A"-package"; A"ctypes"]
 
   | _ ->
     ()

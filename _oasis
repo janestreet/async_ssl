@@ -89,4 +89,5 @@ Executable ffi_types_stubgen
   Install:            false
   Build:              false
   Path:               stubgen
-  BuildDepends:       async_ssl.bindings
+  BuildDepends:       async_ssl.bindings,
+                      ctypes.stubs

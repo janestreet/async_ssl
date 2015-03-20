@@ -1,4 +1,3 @@
-module Cstubs = Ctypes_cstubs.Cstubs
 module Ffi_bindings = Async_ssl_bindings.Ffi_bindings
 
 let prefix = "async_ssl_stub"

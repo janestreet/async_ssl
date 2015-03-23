@@ -26,6 +26,7 @@ Library async_ssl
   Pack:               true
   Modules:            Ffi,
                       Ffi_generated,
+                      Ffi_generated_types,
                       Import,
                       Ssl,
                       Std,

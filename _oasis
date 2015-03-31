@@ -59,7 +59,6 @@ Library async_ssl
                       fieldslib,
                       herelib,
                       pa_bench,
-                      pa_bench.syntax,
                       pa_ounit,
                       pa_test,
                       sexplib,

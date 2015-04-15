@@ -39,6 +39,27 @@ struct
   end
 end
 
+(* Not using stubs here so we can use the ~stub: argument and not blow up on
+   systems with older OpenSSL that don't support TLS 1.1 and 1.2. This way
+   Ctypes will guess sizes of types instead of getting them directly from C, but
+   since these types only use void and *void this should be fine.
+
+   https://github.com/janestreet/async_ssl/issues/3
+*)
+module Ssl_method = struct
+  let foreign = Foreign.foreign ~stub:true
+  let ssl_method_t = Ctypes.(void @-> returning (ptr void))
+  let sslv3 = foreign "SSLv3_method" ssl_method_t
+  let tlsv1 = foreign "TLSv1_method" ssl_method_t
+  let tlsv1_1 = foreign "TLSv1_1_method" ssl_method_t
+  let tlsv1_2 = foreign "TLSv1_2_method" ssl_method_t
+  let sslv23 = foreign "SSLv23_method" ssl_method_t
+  (* SSLv2 isn't secure, so we don't use it.  If you really really really need it, use
+     SSLv23 which will at least try to upgrade the security whenever possible.
+
+     let sslv2_method  = foreign "SSLv2_method"  ssl_method_t
+  *)
+end
 
 module Bindings (F : Cstubs.FOREIGN) =
 struct
@@ -61,18 +82,6 @@ struct
 
   let ssl_load_error_strings = foreign "SSL_load_error_strings"
     Ctypes.(void @-> returning void)
-
-  let ssl_method_t  = Ctypes.(void @-> returning (ptr void))
-  let sslv3_method  = foreign "SSLv3_method" ssl_method_t
-  let tlsv1_method  = foreign "TLSv1_method" ssl_method_t
-  let tlsv1_1_method  = foreign "TLSv1_1_method" ssl_method_t
-  let tlsv1_2_method  = foreign "TLSv1_2_method" ssl_method_t
-  let sslv23_method = foreign "SSLv23_method" ssl_method_t
-  (* SSLv2 isn't secure, so we don't use it.  If you really really really need it, use
-     SSLv23 which will at least try to upgrade the security whenever possible.
-
-     let sslv2_method  = foreign "SSLv2_method"  ssl_method_t
-  *)
 
   module Ssl_ctx =
   struct

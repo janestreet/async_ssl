@@ -5,6 +5,8 @@ open Import
 module Types = Async_ssl_bindings.Ffi_bindings.Types(Ffi_generated_types)
 module Bindings = Async_ssl_bindings.Ffi_bindings.Bindings(Ffi_generated)
 
+module Ssl_method = Async_ssl_bindings.Ffi_bindings.Ssl_method
+
 module Ssl_error = struct
   type t =
     | Zero_return
@@ -113,11 +115,11 @@ module Ssl_ctx = struct
       let ver_method =
         let module V = Version in
         match ver with
-        | V.Sslv3  -> Bindings.sslv3_method  ()
-        | V.Tlsv1  -> Bindings.tlsv1_method  ()
-        | V.Tlsv1_1 -> Bindings.tlsv1_1_method ()
-        | V.Tlsv1_2 -> Bindings.tlsv1_2_method ()
-        | V.Sslv23 -> Bindings.sslv23_method ()
+        | V.Sslv3  -> Ssl_method.sslv3  ()
+        | V.Tlsv1  -> Ssl_method.tlsv1  ()
+        | V.Tlsv1_1 -> Ssl_method.tlsv1_1 ()
+        | V.Tlsv1_2 -> Ssl_method.tlsv1_2 ()
+        | V.Sslv23 -> Ssl_method.sslv23 ()
       in
       match Bindings.Ssl_ctx.new_ ver_method with
       | None   -> failwith "Could not allocate a new SSL context."
@@ -261,11 +263,11 @@ module Ssl = struct
       let version_method =
         let open Version in
         match version with
-        | Sslv3  -> Bindings.sslv3_method ()
-        | Tlsv1  -> Bindings.tlsv1_method ()
-        | Tlsv1_1 -> Bindings.tlsv1_1_method ()
-        | Tlsv1_2 -> Bindings.tlsv1_2_method ()
-        | Sslv23 -> Bindings.sslv23_method ()
+        | Sslv3  -> Ssl_method.sslv3 ()
+        | Tlsv1  -> Ssl_method.tlsv1 ()
+        | Tlsv1_1 -> Ssl_method.tlsv1_1 ()
+        | Tlsv1_2 -> Ssl_method.tlsv1_2 ()
+        | Sslv23 -> Ssl_method.sslv23 ()
       in
       match Bindings.Ssl.set_method t version_method with
       | 1 -> ()

@@ -21,7 +21,7 @@ Description:
   communication between both.
 
 Library async_ssl
-  Path:               lib
+  Path:               src
   FindlibName:        async_ssl
   Pack:               true
   Modules:            Ffi,

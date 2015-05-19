@@ -1,3 +1,7 @@
+## 112.35.00
+
+- Fix github issue #4 (some comments swapped).
+
 ## 112.24.00
 
 - By default OpenSSL ignores the result of certificate validation, so we need to

@@ -77,7 +77,7 @@ module Bio : sig
       traditionally needs. *)
   val create : unit -> t
 
-  (** Write some bytes to a BIO.
+  (** Read some bytes from a BIO.
 
       Returns either the amount of data successfully read (if the return value is
       positive) or that no data was successfully read if the result is 0 or -1.  If the
@@ -85,7 +85,7 @@ module Bio : sig
       type. *)
   val read : t -> buf:(char ptr) -> len:int -> int
 
-  (** Read some bytes from a BIO.
+  (** Write some bytes to a BIO.
 
       Returns either the amount of data successfully written (if the return value is
       positive) or that no data was successfully written if the result is 0 or -1.  If the

@@ -7,7 +7,6 @@ type t =
   | Tlsv1
   | Tlsv1_1
   | Tlsv1_2
-with sexp_of, compare
+with sexp, compare
 
 let default = Tlsv1
-

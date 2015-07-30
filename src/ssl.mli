@@ -31,11 +31,14 @@ end
    negotiated version of the protocol.
 *)
 module Connection : sig
-  type t
+  type t with sexp_of
 
   (* Becomes determined when the ssl session has terminated and cleaned
      up. Includes the error in case of abnormal termination. *)
   val closed : t -> unit Or_error.t Deferred.t
+
+  (* Initiates connection shutdown. *)
+  val close : t -> unit
 
   (* Negotiated version. Not necessarily the same as what we passed as argument
      to the [client] or [server] functions. *)
@@ -91,8 +94,8 @@ end
 
       v}
 
-    To close the connection and free associated memory, just close the passed
-    pipes.
+    To close the connection and free associated memory, call
+    [Connection.close]. This will close all the involved pipes.
 
     The [session] argument enables the session resumption mechanism: when called
     with the same session value twice, the client will try to resume the session

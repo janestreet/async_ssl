@@ -1,3 +1,7 @@
+## 113.00.00
+
+- Added `Ssl.Connection.close`.
+
 ## 112.35.00
 
 - Fix github issue #4 (some comments swapped).

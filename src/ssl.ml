@@ -134,12 +134,15 @@ module Connection = struct
      The SSL structure itself is freed by the GC finalizer.
   *)
   let cleanup t =
-    if verbose then Debug.amf _here_ "%s: crash_and_burn" t.name;
+    if verbose then Debug.amf _here_ "%s: cleanup" t.name;
     Pipe.close_read t.app_to_ssl;
     Pipe.close      t.ssl_to_app;
     Pipe.close_read t.net_to_ssl;
     Pipe.close      t.ssl_to_net;
   ;;
+
+  let close t =
+    cleanup t
 
   (* Write any pending data to ssl_to_net.  If you bind to the returned [unit Deferred.t],
      you wait until the write has completed all the way through the pipe to the end.

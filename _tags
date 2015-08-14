@@ -1,3 +1,98 @@
 "src/ffi_generated_types.cmx": for-pack(Async_ssl)
 # OASIS_START
+# DO NOT EDIT (digest: dcfbaaa78c32fb13d9467546fcbf0b37)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+true: annot, bin_annot
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library async_ssl_bindings
+"bindings/async_ssl_bindings.cmxs": use_async_ssl_bindings
+"bindings/ffi_bindings.cmx": for-pack(Async_ssl_bindings)
+<bindings/*.ml{,i,y}>: package(ctypes)
+<bindings/*.ml{,i,y}>: package(ctypes.foreign.threaded)
+<bindings/*.ml{,i,y}>: package(ctypes.stubs)
+<bindings/*.ml{,i,y}>: package(threads)
+# Library async_ssl
+"src/async_ssl.cmxs": use_async_ssl
+"src/ffi.cmx": for-pack(Async_ssl)
+"src/ffi_generated.cmx": for-pack(Async_ssl)
+"src/import.cmx": for-pack(Async_ssl)
+"src/ssl.cmx": for-pack(Async_ssl)
+"src/std.cmx": for-pack(Async_ssl)
+"src/version.cmx": for-pack(Async_ssl)
+<src/*.ml{,i,y}>: oasis_library_async_ssl_ccopt
+"src/ffi_generated_stubs.c": oasis_library_async_ssl_ccopt
+<src/async_ssl.{cma,cmxa}>: oasis_library_async_ssl_cclib
+"src/libasync_ssl_stubs.lib": oasis_library_async_ssl_cclib
+"src/dllasync_ssl_stubs.dll": oasis_library_async_ssl_cclib
+"src/libasync_ssl_stubs.a": oasis_library_async_ssl_cclib
+"src/dllasync_ssl_stubs.so": oasis_library_async_ssl_cclib
+<src/async_ssl.{cma,cmxa}>: use_libasync_ssl_stubs
+<src/*.ml{,i,y}>: package(async)
+<src/*.ml{,i,y}>: package(comparelib.syntax)
+<src/*.ml{,i,y}>: package(core)
+<src/*.ml{,i,y}>: package(ctypes)
+<src/*.ml{,i,y}>: package(ctypes.foreign.threaded)
+<src/*.ml{,i,y}>: package(ctypes.stubs)
+<src/*.ml{,i,y}>: package(fieldslib.syntax)
+<src/*.ml{,i,y}>: package(herelib)
+<src/*.ml{,i,y}>: package(herelib.syntax)
+<src/*.ml{,i,y}>: package(pa_bench)
+<src/*.ml{,i,y}>: package(pa_bench.syntax)
+<src/*.ml{,i,y}>: package(pa_ounit)
+<src/*.ml{,i,y}>: package(pa_ounit.syntax)
+<src/*.ml{,i,y}>: package(pa_pipebang)
+<src/*.ml{,i,y}>: package(pa_test)
+<src/*.ml{,i,y}>: package(pa_test.syntax)
+<src/*.ml{,i,y}>: package(sexplib)
+<src/*.ml{,i,y}>: package(sexplib.syntax)
+<src/*.ml{,i,y}>: package(threads)
+<src/*.ml{,i,y}>: use_async_ssl_bindings
+"src/ffi_generated_stubs.c": package(async)
+"src/ffi_generated_stubs.c": package(comparelib.syntax)
+"src/ffi_generated_stubs.c": package(core)
+"src/ffi_generated_stubs.c": package(ctypes)
+"src/ffi_generated_stubs.c": package(ctypes.foreign.threaded)
+"src/ffi_generated_stubs.c": package(ctypes.stubs)
+"src/ffi_generated_stubs.c": package(fieldslib.syntax)
+"src/ffi_generated_stubs.c": package(herelib)
+"src/ffi_generated_stubs.c": package(herelib.syntax)
+"src/ffi_generated_stubs.c": package(pa_bench)
+"src/ffi_generated_stubs.c": package(pa_bench.syntax)
+"src/ffi_generated_stubs.c": package(pa_ounit)
+"src/ffi_generated_stubs.c": package(pa_ounit.syntax)
+"src/ffi_generated_stubs.c": package(pa_pipebang)
+"src/ffi_generated_stubs.c": package(pa_test)
+"src/ffi_generated_stubs.c": package(pa_test.syntax)
+"src/ffi_generated_stubs.c": package(sexplib)
+"src/ffi_generated_stubs.c": package(sexplib.syntax)
+"src/ffi_generated_stubs.c": package(threads)
+"src/ffi_generated_stubs.c": use_async_ssl_bindings
+# Executable ffi_stubgen
+"stubgen/ffi_stubgen.byte": package(ctypes)
+"stubgen/ffi_stubgen.byte": package(ctypes.foreign.threaded)
+"stubgen/ffi_stubgen.byte": package(ctypes.stubs)
+"stubgen/ffi_stubgen.byte": package(threads)
+"stubgen/ffi_stubgen.byte": use_async_ssl_bindings
+# Executable ffi_types_stubgen
+"stubgen/ffi_types_stubgen.byte": package(ctypes)
+"stubgen/ffi_types_stubgen.byte": package(ctypes.foreign.threaded)
+"stubgen/ffi_types_stubgen.byte": package(ctypes.stubs)
+"stubgen/ffi_types_stubgen.byte": package(threads)
+"stubgen/ffi_types_stubgen.byte": use_async_ssl_bindings
+<stubgen/*.ml{,i,y}>: package(ctypes)
+<stubgen/*.ml{,i,y}>: package(ctypes.foreign.threaded)
+<stubgen/*.ml{,i,y}>: package(ctypes.stubs)
+<stubgen/*.ml{,i,y}>: package(threads)
+<stubgen/*.ml{,i,y}>: use_async_ssl_bindings
 # OASIS_STOP

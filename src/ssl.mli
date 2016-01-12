@@ -31,7 +31,7 @@ end
    negotiated version of the protocol.
 *)
 module Connection : sig
-  type t with sexp_of
+  type t [@@deriving sexp_of]
 
   (* Becomes determined when the ssl session has terminated and cleaned
      up. Includes the error in case of abnormal termination. *)

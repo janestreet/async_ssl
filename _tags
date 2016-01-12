@@ -1,3 +1,13 @@
-"src/ffi_generated_types.cmx": for-pack(Async_ssl)
+<**/*.ml{,i}>: warn(-40), no_alias_deps
+<**/*>: thread
+# This prevents the implicit addition of -ppx options by ocamlfind
+<**/*.ml{,i}>: predicate(ppx_driver)
+<src/*.ml>: for-pack(Async_ssl)
+<bindings/*.ml>: for-pack(Async_ssl_bindings)
+<bindings/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-lib async_ssl.bindings)
+<src/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-lib async_ssl)
+<stubgen/*.ml{,i}>: pp(ppx-jane -dump-ast)
+<namespace_wrappers/*>: warn(-49)
+"namespace_wrappers": include
 # OASIS_START
 # OASIS_STOP

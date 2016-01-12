@@ -1,3 +1,7 @@
+## 113.24.00
+
+- Switched to ppx.
+
 ## 113.00.00
 
 - Added `Ssl.Connection.close`.

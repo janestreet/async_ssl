@@ -1,3 +1,4 @@
+module Cstubs = Ctypes_cstubs.Cstubs
 module Ffi_bindings = Async_ssl_bindings.Ffi_bindings
 
 let prefix = "async_ssl_stub"
@@ -20,6 +21,8 @@ let () =
   | true, true ->
     failwith "Exactly one of -ml and -c must be specified"
   | true, false ->
+    print_endline "open Ctypes_packed";
+    print_endline "open Ctypes_cstubs";
     Cstubs.write_ml Format.std_formatter ~prefix (module Ffi_bindings.Bindings)
   | false, true ->
     print_endline prologue;

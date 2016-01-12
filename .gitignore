@@ -5,5 +5,3 @@ _build/
 /*.docdir
 /*.native
 /*.byte
-/lib/ffi_generated.ml
-/lib/ffi_generated_stubs.c

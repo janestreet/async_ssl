@@ -1,5 +1,5 @@
-open Core.Std  let _ = _squelch_unused_module_warning_
-open Import    let _ = _squelch_unused_module_warning_
+open! Core.Std
+open! Import
 
 type t =
   | Sslv23
@@ -7,6 +7,6 @@ type t =
   | Tlsv1
   | Tlsv1_1
   | Tlsv1_2
-with sexp, compare
+[@@deriving sexp, compare]
 
 let default = Tlsv1

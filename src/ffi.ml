@@ -2,6 +2,10 @@ open Core.Std
 open Async.Std
 open Import
 
+module Ctypes = Ctypes_packed.Ctypes
+module Signed = Ctypes_packed.Signed
+module Unsigned = Ctypes_packed.Unsigned
+
 module Types = Async_ssl_bindings.Ffi_bindings.Types(Ffi_generated_types)
 module Bindings = Async_ssl_bindings.Ffi_bindings.Bindings(Ffi_generated)
 
@@ -17,7 +21,7 @@ module Ssl_error = struct
     | Want_X509_lookup
     | Syscall_error
     | Ssl_error
-  with sexp_of
+  [@@deriving sexp_of]
 
   let of_int n =
     let open Types.Ssl_error in
@@ -39,7 +43,7 @@ module Verify_mode = struct
     | Verify_peer
     | Verify_fail_if_no_peer_cert
     | Verify_client_once
-  with sexp_of
+  [@@deriving sexp_of]
 
   let to_int t =
     let open Types.Verify_mode in
@@ -107,7 +111,7 @@ module Ssl_ctx = struct
 
   let t = Ctypes.(ptr void) (* for use in ctypes type signatures *)
 
-  let sexp_of_t x = Ctypes.(ptr_diff x null) |> <:sexp_of<int>>
+  let sexp_of_t x = Ctypes.(ptr_diff x null) |> [%sexp_of: int]
 
   let create_exn =
     fun ver ->
@@ -139,7 +143,7 @@ module Ssl_ctx = struct
         | 1 -> ()
         | x -> failwiths "Could not set session id context."
                  (`Return_value x, `Errors (get_error_stack ()))
-                 <:sexp_of<[`Return_value of int] * [`Errors of string list]>>
+                 [%sexp_of: [`Return_value of int] * [`Errors of string list]]
       end
   ;;
 
@@ -152,7 +156,7 @@ module Ssl_ctx = struct
       | _ -> Deferred.return begin
         match (ca_file, ca_path) with
         | (None, None) -> Or_error.error_string "No CA files given."
-        | _ -> Or_error.error "CA load error" (get_error_stack ()) <:sexp_of<string list>>
+        | _ -> Or_error.error "CA load error" (get_error_stack ()) [%sexp_of: string list]
       end
   ;;
 end
@@ -163,7 +167,7 @@ module Bio = struct
 
   let t = Ctypes.(ptr void) (* for use in ctypes signatures *)
 
-  let sexp_of_t bio = Ctypes.(ptr_diff bio null) |> <:sexp_of<int>>
+  let sexp_of_t bio = Ctypes.(ptr_diff bio null) |> [%sexp_of: int]
 
   let create =
     fun () ->
@@ -174,14 +178,14 @@ module Bio = struct
   let read =
     fun bio ~buf ~len ->
       let retval = Bindings.Bio.read bio buf len in
-      if verbose then Debug.amf _here_ "BIO_read(%i) -> %i" len retval;
+      if verbose then Debug.amf [%here] "BIO_read(%i) -> %i" len retval;
       retval
   ;;
 
   let write =
     fun bio ~buf ~len ->
       let retval = Bindings.Bio.write bio buf len in
-      if verbose then Debug.amf _here_ "BIO_write(%i) -> %i" len retval;
+      if verbose then Debug.amf [%here] "BIO_write(%i) -> %i" len retval;
       retval
   ;;
 end
@@ -245,7 +249,7 @@ module Ssl = struct
 
   let t = Ctypes.(ptr void) (* for use in ctypes signatures *)
 
-  let sexp_of_t ssl = Ctypes.(ptr_diff ssl null) |> <:sexp_of<int>>
+  let sexp_of_t ssl = Ctypes.(ptr_diff ssl null) |> [%sexp_of: int]
 
   let create_exn =
     fun ctx ->
@@ -315,7 +319,7 @@ module Ssl = struct
       let retval = Bindings.Ssl.connect ssl in
       Result.(get_connect_accept_error ssl ~retval
               >>= fun () ->
-              if verbose then Debug.amf _here_ "SSL_connect -> %i" retval;
+              if verbose then Debug.amf [%here] "SSL_connect -> %i" retval;
               return ())
   ;;
 
@@ -324,7 +328,7 @@ module Ssl = struct
       let retval = Bindings.Ssl.accept ssl in
       Result.(get_connect_accept_error ssl ~retval
               >>= fun () ->
-              if verbose then Debug.amf _here_ "SSL_accept -> %i" retval;
+              if verbose then Debug.amf [%here] "SSL_accept -> %i" retval;
               return ())
 
   let set_bio =
@@ -335,14 +339,14 @@ module Ssl = struct
   let read =
     fun ssl ~buf ~len ->
       let retval = Bindings.Ssl.read ssl buf len in
-      if verbose then Debug.amf _here_ "SSL_read(%i) -> %i" len retval;
+      if verbose then Debug.amf [%here] "SSL_read(%i) -> %i" len retval;
       get_read_write_error ssl ~retval
   ;;
 
   let write =
     fun ssl ~buf ~len ->
       let retval = Bindings.Ssl.write ssl buf len in
-      if verbose then Debug.amf _here_ "SSL_write(%i) -> %i" len retval;
+      if verbose then Debug.amf [%here] "SSL_write(%i) -> %i" len retval;
       get_read_write_error ssl ~retval
   ;;
 
@@ -413,7 +417,7 @@ module Ssl = struct
     match Bindings.Ssl.set_session t sess with
     | 1 -> Ok ()
     | 0 -> Or_error.error "SSL_set_session error"
-             (get_error_stack ()) <:sexp_of<string list>>
+             (get_error_stack ()) [%sexp_of: string list]
     | n -> failwithf "OpenSSL bug: SSL_set_session returned %d" n ()
 
   let get1_session t =
@@ -430,5 +434,5 @@ module Ssl = struct
     match Bindings.Ssl.check_private_key t with
     | 1 -> Ok ()
     | _ -> Or_error.error "SSL_check_private_key error"
-             (get_error_stack ()) <:sexp_of<string list>>
+             (get_error_stack ()) [%sexp_of: string list]
 end

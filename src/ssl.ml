@@ -2,6 +2,8 @@ open Core.Std
 open Async.Std
 open Import
 
+module Ctypes = Ctypes_packed.Ctypes
+
 module Version = Version
 
 module Certificate = struct
@@ -44,7 +46,7 @@ module Connection = struct
     ; net_to_ssl       : string Pipe.Reader.t
     ; ssl_to_net       : string Pipe.Writer.t
     ; closed           : unit Or_error.t Ivar.t
-    } with sexp_of, fields
+    } [@@deriving sexp_of, fields]
 
   let create_exn ctx version client_or_server name
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
@@ -104,7 +106,7 @@ module Connection = struct
   ;;
 
   let raise_with_ssl_errors () =
-    failwiths "Ssl_error" (Ffi.get_error_stack ()) <:sexp_of< string list >>
+    failwiths "Ssl_error" (Ffi.get_error_stack ()) [%sexp_of: string list]
   ;;
 
   let closed t =
@@ -134,7 +136,7 @@ module Connection = struct
      The SSL structure itself is freed by the GC finalizer.
   *)
   let cleanup t =
-    if verbose then Debug.amf _here_ "%s: cleanup" t.name;
+    if verbose then Debug.amf [%here] "%s: cleanup" t.name;
     Pipe.close_read t.app_to_ssl;
     Pipe.close      t.ssl_to_app;
     Pipe.close_read t.net_to_ssl;
@@ -150,12 +152,12 @@ module Connection = struct
      This drains wbio whether or not ssl_to_net is closed or not.  When ssl_to_net IS
      closed, we make sure to close its matching partner: app_to_ssl. *)
   let rec write_pending_to_net t =
-    if verbose then Debug.amf _here_ "%s: write_pending_to_net" t.name;
+    if verbose then Debug.amf [%here] "%s: write_pending_to_net" t.name;
     let amount_read = Ffi.Bio.read t.wbio ~buf:(bptr t) ~len:(blen t) in
-    if verbose then Debug.amf _here_ "%s:   amount_read: %i" t.name amount_read;
+    if verbose then Debug.amf [%here] "%s:   amount_read: %i" t.name amount_read;
     if amount_read < 0
     then begin
-      if verbose then Debug.amf _here_ "%s: write_pending_to_net complete" t.name;
+      if verbose then Debug.amf [%here] "%s: write_pending_to_net complete" t.name;
       return ()
     end else if amount_read = 0
     then write_pending_to_net t
@@ -164,11 +166,11 @@ module Connection = struct
       begin
         if not (Pipe.is_closed t.ssl_to_net)
         then begin
-          if verbose then Debug.amf _here_ "%s: ssl_to_net <- '%s'" t.name to_write;
+          if verbose then Debug.amf [%here] "%s: ssl_to_net <- '%s'" t.name to_write;
           Pipe.write t.ssl_to_net to_write
         end
         else begin
-          if verbose then Debug.amf _here_ "%s: closing app_to_ssl" t.name;
+          if verbose then Debug.amf [%here] "%s: closing app_to_ssl" t.name;
           Pipe.close_read t.app_to_ssl;
           return ();
         end
@@ -179,12 +181,12 @@ module Connection = struct
   ;;
 
   let flush t =
-    if verbose then Debug.amf _here_ "%s: Flushing..." t.name;
+    if verbose then Debug.amf [%here] "%s: Flushing..." t.name;
     write_pending_to_net t
     >>= fun () ->
     Pipe.upstream_flushed t.ssl_to_net
     >>= fun _ ->
-    if verbose then Debug.amf _here_ "%s: Done flush." t.name;
+    if verbose then Debug.amf [%here] "%s: Done flush." t.name;
     return ()
   ;;
 
@@ -198,7 +200,7 @@ module Connection = struct
       match ret with
       | Ok x -> return (Ok x)
       | Error e ->
-        if verbose then Debug.amf _here_ "%s: %s" t.name (E.sexp_of_t e |> Sexp.to_string);
+        if verbose then Debug.amf [%here] "%s: %s" t.name (E.sexp_of_t e |> Sexp.to_string);
         match e with
         | E.Want_read ->
           (* [Un]intuitively enough, if SSL wants a read, we need to write out all
@@ -215,7 +217,7 @@ module Connection = struct
           (* If the connection to the net died, we have to stop. Return an error,
              and close its matching pipe. *)
           | `Eof ->
-            if verbose then Debug.amf _here_ "%s: closing ssl_to_app" t.name;
+            if verbose then Debug.amf [%here] "%s: closing ssl_to_app" t.name;
             Pipe.close t.ssl_to_app;
             return (Error `Stream_eof)
           end
@@ -237,7 +239,7 @@ module Connection = struct
   ;;
 
   let do_ssl_read t =
-    if verbose then Debug.amf _here_ "%s: BEGIN do_ssl_read" t.name;
+    if verbose then Debug.amf [%here] "%s: BEGIN do_ssl_read" t.name;
     let read_as_str = ref "" in
     in_retry_wrapper t ~f:(fun () ->
       match Ffi.Ssl.read t.ssl ~buf:(bptr t) ~len:(blen t) with
@@ -248,21 +250,21 @@ module Connection = struct
     >>| function
     | Ok _ ->
       if verbose
-      then Debug.amf _here_ "%s: END do_ssl_read. Got: %s" t.name !read_as_str;
+      then Debug.amf [%here] "%s: END do_ssl_read. Got: %s" t.name !read_as_str;
       Some !read_as_str
     | Error (`Stream_eof | `Session_closed) ->
-      if verbose then Debug.amf _here_ "%s: END do_ssl_read. Stream closed." t.name;
+      if verbose then Debug.amf [%here] "%s: END do_ssl_read. Stream closed." t.name;
       None
   ;;
 
   let do_ssl_write t str =
-    if verbose then Debug.amf _here_ "%s: BEGIN do_ssl_write" t.name;
+    if verbose then Debug.amf [%here] "%s: BEGIN do_ssl_write" t.name;
     let len = String.length str in
     let rec go startidx =
       if startidx >= len
       then begin
         if verbose
-        then Debug.amf _here_ "%s: startidx >= len (startidx=%i, len=%i)"
+        then Debug.amf [%here] "%s: startidx >= len (startidx=%i, len=%i)"
                t.name startidx len;
         return ()
       end
@@ -270,17 +272,17 @@ module Connection = struct
         in_retry_wrapper t ~f:(fun () ->
           let write_len = len - startidx in
           let substr = String.sub ~pos:startidx ~len:write_len str in
-          if verbose then Debug.amf _here_ "%s: trying to ssl_write '%s'" t.name substr;
+          if verbose then Debug.amf [%here] "%s: trying to ssl_write '%s'" t.name substr;
           Ffi.Ssl.write t.ssl ~buf:substr ~len:write_len)
         >>= function
         | Ok amount_written ->
-          if verbose then Debug.amf _here_ "%s: wrote %i bytes" t.name amount_written;
+          if verbose then Debug.amf [%here] "%s: wrote %i bytes" t.name amount_written;
           write_pending_to_net t
           >>= fun () ->
           go (startidx + amount_written)
         | Error e -> (* should never happen *)
           failwiths "Unexpected SSL error during write."
-            e <:sexp_of< [`Session_closed | `Stream_eof ] >>
+            e [%sexp_of: [`Session_closed | `Stream_eof ]]
       end
     in
     go 0
@@ -289,7 +291,7 @@ module Connection = struct
   (* Runs the net -> ssl -> app data pump until either net_to_ssl or ssl_to_app
      dies *)
   let rec run_reader_loop t =
-    if verbose then Debug.amf _here_ "%s: BEGIN run_reader_loop" t.name;
+    if verbose then Debug.amf [%here] "%s: BEGIN run_reader_loop" t.name;
     do_ssl_read t
     >>= function
     | None ->
@@ -298,11 +300,11 @@ module Connection = struct
     | Some s ->
       if Pipe.is_closed t.ssl_to_app
       then begin
-        if verbose then Debug.amf _here_ "%s: ssl_to_app is closed; skipping write." t.name;
+        if verbose then Debug.amf [%here] "%s: ssl_to_app is closed; skipping write." t.name;
         return ()
       end
       else begin
-        if verbose then Debug.amf _here_ "%s: ssl_to_app <- '%s'" t.name s;
+        if verbose then Debug.amf [%here] "%s: ssl_to_app <- '%s'" t.name s;
         Pipe.write t.ssl_to_app s
         >>= fun () ->
         run_reader_loop t
@@ -314,14 +316,14 @@ module Connection = struct
     Pipe.read t.app_to_ssl
     >>= function
     | `Ok to_write ->
-      if verbose then Debug.amf _here_ "%s: app_to_ssl -> '%s'" t.name to_write;
+      if verbose then Debug.amf [%here] "%s: app_to_ssl -> '%s'" t.name to_write;
       do_ssl_write t to_write
       >>= fun () ->
       run_writer_loop t
     | `Eof ->
       write_pending_to_net t
       >>= fun () ->
-      if verbose then Debug.amf _here_ "%s: closing ssl_to_net" t.name;
+      if verbose then Debug.amf [%here] "%s: closing ssl_to_net" t.name;
       Pipe.close t.ssl_to_net;
       return ()
   ;;
@@ -333,12 +335,12 @@ module Connection = struct
       | `Server -> (Ffi.Ssl.accept , "accept" )
     in
     in_retry_wrapper t ~f:(fun () ->
-      if verbose then Debug.amf _here_ "%s: trying to %s" t.name handshake_name;
+      if verbose then Debug.amf [%here] "%s: trying to %s" t.name handshake_name;
       handshake_fn t.ssl)
     >>| function
-    | Ok _ -> if verbose then Debug.amf _here_ "%s: Handshake complete!" t.name;
+    | Ok _ -> if verbose then Debug.amf [%here] "%s: Handshake complete!" t.name;
     | Error _ ->
-      if verbose then Debug.amf _here_ "%s: Handshake failed!" t.name;
+      if verbose then Debug.amf [%here] "%s: Handshake failed!" t.name;
       cleanup t;
   ;;
 
@@ -349,7 +351,7 @@ module Connection = struct
       ; run_writer_loop t
       ]
     >>| fun () ->
-    if verbose then Debug.amf _here_ "%s: SSL stopped." t.name
+    if verbose then Debug.amf [%here] "%s: SSL stopped." t.name
   ;;
 
   (* Close all pipes if exceptions leak out.  This will implicitly stop
@@ -359,7 +361,7 @@ module Connection = struct
     >>| fun result ->
     Result.iter_error result ~f:(fun error ->
       if verbose
-      then Debug.amf _here_ "%s: ERROR: %s" t.name (Error.to_string_hum error);
+      then Debug.amf [%here] "%s: ERROR: %s" t.name (Error.to_string_hum error);
       cleanup t);
     result
   ;;
@@ -377,7 +379,7 @@ module Session = struct
       match Ffi.Ssl.get1_session (Connection.ssl conn) with
       | None ->
         if verbose
-        then Debug.amf _here_ "no session available for connection %s"
+        then Debug.amf [%here] "no session available for connection %s"
                (Connection.name conn);
         None
       | Some session -> Some { session; ctx = Connection.ctx conn }
@@ -426,7 +428,7 @@ let context_exn ~name arg =
        worth keeping this since it doesn't do harm. *)
     Ffi.Ssl_ctx.set_context_session_id context name;
     context
-  | Error e -> failwiths "Could not initialize ssl context" e <:sexp_of< Error.t >>
+  | Error e -> failwiths "Could not initialize ssl context" e [%sexp_of: Error.t]
 ;;
 
 let client ?version:(version = Version.default) ?name ?ca_file ?ca_path ?session
@@ -466,7 +468,7 @@ let server ?version:(version = Version.default) ?name ?ca_file ?ca_path
   return (Ok conn)
 ;;
 
-TEST_MODULE = struct
+let%test_module _ = (module struct
   let pipe_to_string reader =
     Pipe.to_list reader >>| String.concat
   ;;
@@ -494,7 +496,7 @@ TEST_MODULE = struct
   *)
 
   (* Create both a client and a server, and send hello world back and forth. *)
-  TEST_UNIT =
+  let%test_unit _ =
     let session = Session.create () in
     let check_server_certificate client_conn =
       let cert =
@@ -509,13 +511,13 @@ TEST_MODULE = struct
       assert (value = "testbox")
     in
     let check_version conn =
-      <:test_result<Version.t>> (Connection.version conn) ~expect:Version.default
+      [%test_result: Version.t] (Connection.version conn) ~expect:Version.default
     in
     let check_session_reused conn ~expect =
-      <:test_result<bool>> (Connection.session_reused conn) ~expect
+      [%test_result: bool] (Connection.session_reused conn) ~expect
     in
     let run_test ~expect_session_reused =
-      if verbose then Debug.amf _here_ "0";
+      if verbose then Debug.amf [%here] "0";
       (* Refer to the above ascii art! *)
       let (l, j) = Pipe.create () in
       let (h, e) = Pipe.create () in
@@ -525,7 +527,7 @@ TEST_MODULE = struct
       let (i, k) = Pipe.create () in
       let (client_in, client_out) = (b, a) in
       let (server_in, server_out) = (l, k) in
-      if verbose then Debug.amf _here_ "1";
+      if verbose then Debug.amf [%here] "1";
       (* attach the server to ssl 2 to net *)
       let server_conn =
         server
@@ -560,21 +562,21 @@ TEST_MODULE = struct
       check_version server_conn;
       check_session_reused client_conn ~expect:expect_session_reused;
       check_session_reused server_conn ~expect:expect_session_reused;
-      if verbose then Debug.amf _here_ "2";
+      if verbose then Debug.amf [%here] "2";
       Pipe.write client_out "hello, server." |> don't_wait_for;
-      if verbose then Debug.amf _here_ "3";
+      if verbose then Debug.amf [%here] "3";
       Pipe.close client_out;
-      if verbose then Debug.amf _here_ "4";
+      if verbose then Debug.amf [%here] "4";
       Pipe.write server_out "hello, client." |> don't_wait_for;
-      if verbose then Debug.amf _here_ "5";
+      if verbose then Debug.amf [%here] "5";
       Pipe.close server_out;
-      if verbose then Debug.amf _here_ "6";
+      if verbose then Debug.amf [%here] "6";
       pipe_to_string server_in
       >>= fun on_server ->
-      if verbose then Debug.amf _here_ "7";
+      if verbose then Debug.amf [%here] "7";
       pipe_to_string client_in
       >>= fun on_client ->
-      if verbose then Debug.amf _here_ "8";
+      if verbose then Debug.amf [%here] "8";
       (* check that all the pipes are closed *)
       check_closed a "client_in";
       check_closed b "client_out";
@@ -588,7 +590,7 @@ TEST_MODULE = struct
       check_closed j "j";
       check_closed k "server_in";
       check_closed l "server_out";
-      if verbose then Debug.amf _here_ "9";
+      if verbose then Debug.amf [%here] "9";
       Connection.closed client_conn
       >>= fun client_exit_status ->
       Or_error.ok_exn client_exit_status;
@@ -596,9 +598,9 @@ TEST_MODULE = struct
       >>= fun server_exit_status ->
       Or_error.ok_exn server_exit_status;
       if on_server <> "hello, server."
-      then failwiths "No hello world to server" on_server <:sexp_of< string >>;
+      then failwiths "No hello world to server" on_server [%sexp_of: string];
       if on_client <> "hello, client."
-      then failwiths "No hello world to client" on_client <:sexp_of< string >>;
+      then failwiths "No hello world to client" on_client [%sexp_of: string];
       return ()
     in
     let run_twice () =
@@ -609,7 +611,7 @@ TEST_MODULE = struct
     Thread_safe.block_on_async_exn run_twice
   ;;
 
-  BENCH "ssl_stress_test" =
+  let%bench "ssl_stress_test" =
   let run_bench () =
     (* Refer to the above ascii art! *)
     let (l, j) = Pipe.create () in
@@ -686,4 +688,4 @@ TEST_MODULE = struct
   Thread_safe.block_on_async_exn run_bench
 ;;
 
-end
+end)

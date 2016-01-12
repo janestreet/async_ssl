@@ -1,0 +1,17 @@
+version = "$(pkg_version)"
+description = "An Async-pipe-based interface with OpenSSL."
+requires = "async async_ssl.bindings bin_prot core ctypes ctypes.stubs fieldslib ppx_assert.runtime-lib ppx_bench.runtime-lib ppx_expect.collector ppx_inline_test.runtime-lib sexplib typerep variantslib"
+archive(byte          ) = "async_ssl.cma"
+archive(native        ) = "async_ssl.cmxa"
+archive(native, plugin) = "async_ssl.cmxs"
+exists_if = "async_ssl.cma"
+
+package "bindings" (
+  version = "$(pkg_version)"
+  description = ""
+  requires = "bin_prot ctypes ctypes.foreign.threaded ctypes.stubs fieldslib ppx_assert.runtime-lib ppx_bench.runtime-lib ppx_expect.collector ppx_inline_test.runtime-lib sexplib typerep variantslib"
+  archive(byte          ) = "async_ssl_bindings.cma"
+  archive(native        ) = "async_ssl_bindings.cmxa"
+  archive(native, plugin) = "async_ssl_bindings.cmxs"
+  exists_if = "async_ssl_bindings.cma"
+)

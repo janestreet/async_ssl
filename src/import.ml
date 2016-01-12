@@ -1,7 +1,6 @@
 (* All debug traces are guarded with [if verbose]. *)
 let verbose = false
 
-let _squelch_unused_module_warning_ = ()
 
 (** Iterate a function while another function is true.
 

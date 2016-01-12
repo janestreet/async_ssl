@@ -1,3 +1,6 @@
+module Ctypes = Ctypes_packed.Ctypes
+module Cstubs = Ctypes_cstubs.Cstubs
+
 module Types(F : Cstubs.Types.TYPE) =
 struct
   module Verify_mode = struct
@@ -47,7 +50,7 @@ end
    https://github.com/janestreet/async_ssl/issues/3
 *)
 module Ssl_method = struct
-  let foreign = Foreign.foreign ~stub:true
+  let foreign = Ctypes_foreign_threaded.Foreign.foreign ~stub:true
   let ssl_method_t = Ctypes.(void @-> returning (ptr void))
   let sslv3 = foreign "SSLv3_method" ssl_method_t
   let tlsv1 = foreign "TLSv1_method" ssl_method_t

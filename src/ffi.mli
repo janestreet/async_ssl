@@ -9,7 +9,7 @@
 *)
 open Core.Std
 open Async.Std
-open Ctypes
+open Ctypes_packed.Ctypes
 open Import
 
 module Ssl_error : sig
@@ -22,7 +22,7 @@ module Ssl_error : sig
     | Want_X509_lookup
     | Syscall_error
     | Ssl_error
-  with sexp_of
+  [@@deriving sexp_of]
 end
 
 module Verify_mode : sig
@@ -31,11 +31,11 @@ module Verify_mode : sig
     | Verify_peer
     | Verify_fail_if_no_peer_cert
     | Verify_client_once
-  with sexp_of
+  [@@deriving sexp_of]
 end
 
 module Ssl_ctx : sig
-  type t with sexp_of
+  type t [@@deriving sexp_of]
 
   (** Initialize a new SSL context, out of which all SSL connections are allocated. *)
   val create_exn : Version.t -> t
@@ -71,7 +71,7 @@ module Ssl_ctx : sig
 end
 
 module Bio : sig
-  type t with sexp_of
+  type t [@@deriving sexp_of]
 
   (** Create a new 'infinite' memory-backed IO queue, to replace a socket that openssl
       traditionally needs. *)
@@ -138,7 +138,7 @@ end
    would perhaps better be named [Connection]. *)
 module Ssl : sig
 
-  type t with sexp_of
+  type t [@@deriving sexp_of]
 
   (** Creates a new SSL connection, with a memory-backed BIO. *)
   val create_exn : Ssl_ctx.t -> t

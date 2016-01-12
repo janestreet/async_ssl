@@ -20,6 +20,6 @@ type t =
   | Tlsv1
   | Tlsv1_1
   | Tlsv1_2
-with sexp, compare
+[@@deriving sexp, compare]
 
 val default : t

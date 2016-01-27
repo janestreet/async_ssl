@@ -43,7 +43,8 @@ let split str =
   skip_spaces 0
 
 let define_c_library name env =
-  let tag = Printf.sprintf "use_C_%s" name in
+  let tag_ccopt = Printf.sprintf "use_%s_ccopt" name
+  and tag_cclib = Printf.sprintf "use_%s_cclib" name in
 
   let get what =
     let var = name ^ "_" ^ what in
@@ -56,14 +57,14 @@ let define_c_library name env =
   and cclib = get "cclib" in
 
   (* Add flags for linking with the C library: *)
-  flag ["ocamlmklib"; "c"; tag] & S cclib;
+  flag ["ocamlmklib"; "c"; tag_cclib] & S cclib;
 
   (* C stubs using the C library must be compiled with the library
      specifics flags: *)
-  flag ["c"; "compile"; tag] & S (List.map (fun arg -> S[A"-ccopt"; arg]) ccopt);
+  flag ["c"; "compile"; tag_ccopt] & S (List.map (fun arg -> S[A"-ccopt"; arg]) ccopt);
 
   (* OCaml libraries must depends on the C library: *)
-  flag ["link"; "ocaml"; tag] & S (List.map (fun arg -> S[A"-cclib"; arg]) cclib)
+  flag ["link"; "ocaml"; tag_cclib] & S (List.map (fun arg -> S[A"-cclib"; arg]) cclib)
 
 let dispatch = function
   | After_rules ->

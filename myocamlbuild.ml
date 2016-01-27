@@ -22,6 +22,49 @@ let js_hacks = function
     pflag ["ocaml"; "ocamldep"] "predicate" (fun s -> S [A "-predicates"; A s])
   | _ -> ()
 
+let split str =
+  let rec skip_spaces i =
+    if i = String.length str then
+      []
+    else
+      if str.[i] = ' ' then
+        skip_spaces (i + 1)
+      else
+        extract i (i + 1)
+  and extract i j =
+    if j = String.length str then
+      [String.sub str i (j - i)]
+    else
+      if str.[j] = ' ' then
+        String.sub str i (j - i) :: skip_spaces (j + 1)
+      else
+        extract i (j + 1)
+  in
+  skip_spaces 0
+
+let define_c_library name env =
+  let tag = Printf.sprintf "use_C_%s" name in
+
+  let get what =
+    let var = name ^ "_" ^ what in
+    try
+      List.map (fun x -> A x) (split (BaseEnvLight.var_get var env))
+    with Not_found ->
+      Printf.ksprintf failwith "Variable %s not defined in setup.data" var
+  in
+  let ccopt = get "ccopt"
+  and cclib = get "cclib" in
+
+  (* Add flags for linking with the C library: *)
+  flag ["ocamlmklib"; "c"; tag] & S cclib;
+
+  (* C stubs using the C library must be compiled with the library
+     specifics flags: *)
+  flag ["c"; "compile"; tag] & S (List.map (fun arg -> S[A"-ccopt"; arg]) ccopt);
+
+  (* OCaml libraries must depends on the C library: *)
+  flag ["link"; "ocaml"; tag] & S (List.map (fun arg -> S[A"-cclib"; arg]) cclib)
+
 let dispatch = function
   | After_rules ->
     let stubgen          = "stubgen/ffi_stubgen.byte" in
@@ -65,7 +108,10 @@ let dispatch = function
       (fun _ _ ->
          Cmd(S[P stubgen; A"-c"; Sh">"; A"src/ffi_generated_stubs.c"]));
 
-    flag ["c"; "compile"] & S[A"-I"; A"src"; A"-package"; A"ctypes"]
+    flag ["c"; "compile"] & S[A"-I"; A"src"; A"-package"; A"ctypes"];
+
+    let env = BaseEnvLight.load () in
+    define_c_library "openssl" env
 
   | _ ->
     ()

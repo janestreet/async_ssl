@@ -9,5 +9,6 @@
 <stubgen/*.ml{,i}>: pp(ppx-jane -dump-ast)
 <namespace_wrappers/*>: warn(-49)
 "namespace_wrappers": include
+<bindings/*>: use_C_openssl
 # OASIS_START
 # OASIS_STOP

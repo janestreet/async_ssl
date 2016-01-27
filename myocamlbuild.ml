@@ -42,32 +42,19 @@ let split str =
   in
   skip_spaces 0
 
-let define_c_library name env =
-  let tag_ccopt = Printf.sprintf "use_%s_ccopt" name
-  and tag_cclib = Printf.sprintf "use_%s_cclib" name in
-
-  let get what =
-    let var = name ^ "_" ^ what in
-    try
-      List.map (fun x -> A x) (split (BaseEnvLight.var_get var env))
-    with Not_found ->
-      Printf.ksprintf failwith "Variable %s not defined in setup.data" var
-  in
-  let ccopt = get "ccopt"
-  and cclib = get "cclib" in
-
-  (* Add flags for linking with the C library: *)
-  flag ["ocamlmklib"; "c"; tag_cclib] & S cclib;
-
-  (* C stubs using the C library must be compiled with the library
-     specifics flags: *)
-  flag ["c"; "compile"; tag_ccopt] & S (List.map (fun arg -> S[A"-ccopt"; arg]) ccopt);
-
-  (* OCaml libraries must depends on the C library: *)
-  flag ["link"; "ocaml"; tag_cclib] & S (List.map (fun arg -> S[A"-cclib"; arg]) cclib)
+let get_flags var env =
+  try
+    List.map (fun x -> A x) (split (BaseEnvLight.var_get var env))
+  with Not_found ->
+    Printf.ksprintf failwith "Variable %s not defined in setup.data" var
 
 let dispatch = function
   | After_rules ->
+    let env = BaseEnvLight.load () in
+
+    let ccopt = get_flags "openssl_ccopt" env
+    and cclib = get_flags "openssl_cclib" env in
+
     let stubgen          = "stubgen/ffi_stubgen.byte" in
     let stubgen_types    = "stubgen/ffi_types_stubgen.byte" in
     let stubgen_ml_types = "stubgen/ffi_ml_types_subgen.exe" in
@@ -84,18 +71,18 @@ let dispatch = function
       (fun _ _ ->
          Cmd (S [P stubgen_types; Sh">"; A"stubgen/ffi_ml_types_stubgen.c"]));
 
-    rule "generated-types exe"
-      ~dep:"stubgen/ffi_ml_types_stubgen.c"
-      ~prod:stubgen_ml_types
-      (fun _ _ ->
-         let env = BaseEnvLight.load () in
-         let cc = BaseEnvLight.var_get "bytecomp_c_compiler" env in
-         let stdlib = BaseEnvLight.var_get "standard_library" env in
-         let ctypes = BaseEnvLight.var_get "pkg_ctypes" env in
-         Cmd (S [Sh cc; A"stubgen/ffi_ml_types_stubgen.c";
-                 A"-I"; P ctypes; A"-I"; P stdlib;
-                 A"-o"; A stubgen_ml_types])
-      );
+    (let cc = BaseEnvLight.var_get "bytecomp_c_compiler" env in
+     let stdlib : string = BaseEnvLight.var_get "standard_library" env in
+     let ctypes = BaseEnvLight.var_get "pkg_ctypes" env in
+     rule "generated-types exe"
+       ~dep:"stubgen/ffi_ml_types_stubgen.c"
+       ~prod:stubgen_ml_types
+       (fun _ _ ->
+          Cmd (S [Sh cc; A"stubgen/ffi_ml_types_stubgen.c";
+                  A"-I"; P ctypes; A"-I"; P stdlib;
+                  S ccopt;
+                  A"-o"; A stubgen_ml_types])
+       ));
 
     rule "generated-types ml"
       ~dep:stubgen_ml_types
@@ -111,8 +98,18 @@ let dispatch = function
 
     flag ["c"; "compile"] & S[A"-I"; A"src"; A"-package"; A"ctypes"];
 
-    let env = BaseEnvLight.load () in
-    define_c_library "openssl" env
+    let tag_ccopt = "use_openssl_ccopt"
+    and tag_cclib = "use_openssl_cclib" in
+
+    (* Add flags for linking with the C library: *)
+    flag ["ocamlmklib"; "c"; tag_cclib] & S cclib;
+
+    (* C stubs using the C library must be compiled with the library
+       specifics flags: *)
+    flag ["c"; "compile"; tag_ccopt] & S (List.map (fun arg -> S[A"-ccopt"; arg]) ccopt);
+
+    (* OCaml libraries must depends on the C library: *)
+    flag ["link"; "ocaml"; tag_cclib] & S (List.map (fun arg -> S[A"-cclib"; arg]) cclib)
 
   | _ ->
     ()

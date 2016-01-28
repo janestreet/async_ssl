@@ -1,6 +1,8 @@
+<**/*.c>: use_openssl_ccopt
+<bindings/*>: use_openssl_cclib
 "src/ffi_generated_types.cmx": for-pack(Async_ssl)
 # OASIS_START
-# DO NOT EDIT (digest: dcfbaaa78c32fb13d9467546fcbf0b37)
+# DO NOT EDIT (digest: ddb87def9543c00e1256643112b6a91a)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -32,11 +34,6 @@ true: annot, bin_annot
 "src/version.cmx": for-pack(Async_ssl)
 <src/*.ml{,i,y}>: oasis_library_async_ssl_ccopt
 "src/ffi_generated_stubs.c": oasis_library_async_ssl_ccopt
-<src/async_ssl.{cma,cmxa}>: oasis_library_async_ssl_cclib
-"src/libasync_ssl_stubs.lib": oasis_library_async_ssl_cclib
-"src/dllasync_ssl_stubs.dll": oasis_library_async_ssl_cclib
-"src/libasync_ssl_stubs.a": oasis_library_async_ssl_cclib
-"src/dllasync_ssl_stubs.so": oasis_library_async_ssl_cclib
 <src/async_ssl.{cma,cmxa}>: use_libasync_ssl_stubs
 <src/*.ml{,i,y}>: package(async)
 <src/*.ml{,i,y}>: package(comparelib.syntax)

@@ -20,6 +20,8 @@ Description:
   This library allows you to create an SSL client and server, with encrypted
   communication between both.
 
+PostConfCommand: config/figure_out_openssl_flags.sh
+
 Library async_ssl
   Path:               src
   FindlibName:        async_ssl
@@ -63,7 +65,6 @@ Library async_ssl
                       pa_test,
                       sexplib,
                       threads
-  CCLib:              -lssl -lcrypto
   CCOpt:              -I$pkg_ctypes/..
 
 Library async_ssl_bindings

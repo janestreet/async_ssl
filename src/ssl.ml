@@ -295,8 +295,8 @@ module Connection = struct
     do_ssl_read t
     >>= function
     | None ->
-      (* hit end of ssl_to_app in do_ssl_read *)
-      return ()
+      (* we hit end of t.ssl in do_ssl_read, close ssl_to_app so the app sees the close *)
+      return (Pipe.close t.ssl_to_app)
     | Some s ->
       if Pipe.is_closed t.ssl_to_app
       then begin

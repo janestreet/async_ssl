@@ -4,9 +4,9 @@
 <**/*.ml{,i}>: predicate(ppx_driver)
 <src/*.ml>: for-pack(Async_ssl)
 <bindings/*.ml>: for-pack(Async_ssl_bindings)
-<bindings/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-lib async_ssl.bindings)
-<src/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-lib async_ssl)
-<stubgen/*.ml{,i}>: pp(ppx-jane -dump-ast)
+<bindings/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-drop -bench-drop -inline-test-lib fake_for_drop)
+<src/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-drop -bench-drop -inline-test-lib fake_for_drop)
+<stubgen/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-drop -bench-drop -inline-test-lib fake_for_drop)
 <namespace_wrappers/*>: warn(-49)
 "namespace_wrappers": include
 <**/*.c>: use_openssl_ccopt

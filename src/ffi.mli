@@ -7,10 +7,10 @@
     This module is for use with Async, which has no threads. You void your warranty
     by calling any of these functions from multiple threads at the same time.
 *)
-open Core.Std
-open Async.Std
+open! Core.Std
+open! Async.Std
 open Ctypes_packed.Ctypes
-open Import
+open! Import
 
 module Ssl_error : sig
   type t =

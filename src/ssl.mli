@@ -2,8 +2,8 @@
 
     This module allows you to create an SSL client and server, with encrypted
     communication between both. *)
-open Core.Std
-open Async.Std
+open! Core.Std
+open! Async.Std
 
 module Version : module type of Version
 

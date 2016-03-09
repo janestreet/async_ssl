@@ -1,3 +1,8 @@
+## 113.33.00
+
+- Make sure to close the `Pipe.Writer.t` that goes back to the application, otherwise the
+  application will never get an `Eof if the connection is closed.
+
 ## 113.24.00
 
 - Switched to ppx.

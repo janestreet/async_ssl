@@ -3,7 +3,7 @@
 set -e
 
 if [ -e setup.data ]; then
-    sed '/^openssl_\(lib\|cflags\)=/d' setup.data > setup.data.new
+    sed '/^openssl_cc\(lib\|opt\)=/d' setup.data > setup.data.new
     mv setup.data.new setup.data
 fi
 

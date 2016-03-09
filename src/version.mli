@@ -1,6 +1,6 @@
 (** The protocol and security level that libopenssl uses. *)
 
-open Core.Std
+open! Core.Std
 
 (** Best practice: Try your application with [Tlsv1_2].  That might not work.
     Use [Sslv23] for maximum compatibility.  See SSL_CTX_new(3) for more

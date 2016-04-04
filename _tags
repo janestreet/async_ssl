@@ -10,6 +10,6 @@
 <namespace_wrappers/*>: warn(-49)
 "namespace_wrappers": include
 <**/*.c>: use_openssl_ccopt
-<bindings/*>: use_openssl_cclib
+<{src,bindings}/*>: use_openssl_cclib
 # OASIS_START
 # OASIS_STOP

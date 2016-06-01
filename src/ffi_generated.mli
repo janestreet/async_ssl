@@ -1,4 +1,3 @@
 open Ctypes_packed
-type 'a fn = 'a
-val foreign : string -> ('a -> 'b) Ctypes.fn -> ('a -> 'b)
-val foreign_value : string -> 'a Ctypes.typ -> 'a Ctypes.ptr
+include Cstubs.FOREIGN
+  with type 'a return = 'a and type 'a result = 'a

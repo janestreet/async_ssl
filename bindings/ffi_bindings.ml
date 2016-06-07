@@ -1,6 +1,8 @@
 module Ctypes = Ctypes_packed.Ctypes
 module Cstubs = Ctypes_cstubs.Cstubs
 
+#import "config.h"
+
 module Types(F : Cstubs.Types.TYPE) =
 struct
   module Verify_mode = struct
@@ -42,31 +44,68 @@ struct
   end
 end
 
-(* Not using stubs here so we can use the ~stub: argument and not blow up on
-   systems with older OpenSSL that don't support TLS 1.1 and 1.2. This way
-   Ctypes will guess sizes of types instead of getting them directly from C, but
-   since these types only use void and *void this should be fine.
-
-   https://github.com/janestreet/async_ssl/issues/3
-*)
-module Ssl_method = struct
-  let foreign = Ctypes_foreign_threaded.Foreign.foreign ~stub:true
-  let ssl_method_t = Ctypes.(void @-> returning (ptr void))
-  let sslv3 = foreign "SSLv3_method" ssl_method_t
-  let tlsv1 = foreign "TLSv1_method" ssl_method_t
-  let tlsv1_1 = foreign "TLSv1_1_method" ssl_method_t
-  let tlsv1_2 = foreign "TLSv1_2_method" ssl_method_t
-  let sslv23 = foreign "SSLv23_method" ssl_method_t
-  (* SSLv2 isn't secure, so we don't use it.  If you really really really need it, use
-     SSLv23 which will at least try to upgrade the security whenever possible.
-
-     let sslv2_method  = foreign "SSLv2_method"  ssl_method_t
-  *)
-end
-
 module Bindings (F : Cstubs.FOREIGN) =
 struct
   let foreign = F.foreign
+
+  (* Some systems with older OpenSSL don't support TLS 1.1 and 1.2.
+     https://github.com/janestreet/async_ssl/issues/3
+
+     This was originally solved by using [Ctypes_foreign_threaded.Foreign.foreign ~stub:true].
+     We now detect available symbols at compile time.
+
+     Bindings are uniformly using stubs (no libffi dependency).
+
+     Note: using [Ctypes_foreign_threaded.Foreign.foreign ~stub:true] was failing (segfault)
+     with 32bit build on 64bit host.
+  *)
+  module Ssl_method = struct
+    let ssl_method_t = Ctypes.(void @-> returning (ptr void))
+    let dummy name () = failwith (Printf.sprintf "Ssl_method %s not implemented" name)
+    let implemented name = foreign name ssl_method_t
+    let helper name f = f name
+
+    let sslv3 = helper "SSLv3_method"
+#ifdef JSC_SSLv3_method
+      implemented
+#else
+      dummy
+#endif
+
+    let tlsv1 = helper "TLSv1_method"
+#ifdef JSC_TLSv1_method
+      implemented
+#else
+      dummy
+#endif
+
+    let tlsv1_1 = helper "TLSv1_1_method"
+#ifdef JSC_TLSv1_1_method
+      implemented
+#else
+      dummy
+#endif
+
+    let tlsv1_2 = helper "TLSv1_2_method"
+#ifdef JSC_TLSv1_2_method
+      implemented
+#else
+      dummy
+#endif
+
+    let sslv23 = helper "SSLv23_method"
+#ifdef JSC_SSLv23_method
+      implemented
+#else
+      dummy
+#endif
+
+    (* SSLv2 isn't secure, so we don't use it.  If you really really really need it, use
+       SSLv23 which will at least try to upgrade the security whenever possible.
+
+       let sslv2_method  = foreign "SSLv2_method"  ssl_method_t
+    *)
+  end
 
   let err_get_error = foreign "ERR_get_error"
     Ctypes.(void @-> returning ulong)

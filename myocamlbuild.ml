@@ -5,6 +5,11 @@ module JS = Jane_street_ocamlbuild_goodies
 
 let dev_mode = true
 
+let setup_preprocessor_deps = function
+  | After_rules ->
+    dep ["pp_deps_for_bindings"] ["bindings/config.h"];
+  | _ -> ()
+
 let split str =
   let rec skip_spaces i =
     if i = String.length str then
@@ -54,8 +59,9 @@ let dispatch = function
       (fun _ _ ->
          Cmd (S [P stubgen_types; Sh">"; A"stubgen/ffi_ml_types_stubgen.c"]));
 
-    (let cc = BaseEnvLight.var_get "bytecomp_c_compiler" env in
-     let stdlib : string = BaseEnvLight.var_get "standard_library" env in
+    let cc = BaseEnvLight.var_get "bytecomp_c_compiler" env in
+
+    (let stdlib : string = BaseEnvLight.var_get "standard_library" env in
      let ctypes = BaseEnvLight.var_get "pkg_ctypes" env in
      rule "generated-types exe"
        ~dep:"stubgen/ffi_ml_types_stubgen.c"
@@ -66,6 +72,22 @@ let dispatch = function
                   S ccopt;
                   A"-o"; A stubgen_ml_types])
        ));
+
+    let discover_c   = "bindings/discover.c"   in
+    let discover_exe = "bindings/discover.exe" in
+    let config_h     = "bindings/config.h"     in
+
+    rule "discover tool"
+      ~dep:discover_c
+      ~prod:discover_exe
+      (fun _ _ ->
+         Cmd (S [Sh cc; A discover_c; S ccopt; S cclib; A"-ldl"; A"-o"; A discover_exe]));
+
+    rule "config.h file"
+      ~dep:discover_exe
+      ~prod:config_h
+      (fun _ _ ->
+         Cmd (S [P discover_exe; Sh">"; A config_h]));
 
     rule "generated-types ml"
       ~dep:stubgen_ml_types
@@ -102,6 +124,7 @@ let () =
     JS.alt_cmxs_of_cmxa_rule hook;
     JS.pass_predicates_to_ocamldep hook;
     if dev_mode && not Sys.win32 then JS.track_external_deps hook;
+    setup_preprocessor_deps hook;
     Ppx_driver_ocamlbuild.dispatch hook;
     dispatch hook;
     dispatch_default hook)

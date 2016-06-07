@@ -8,6 +8,5 @@ generate ~package:"async_ssl"
   ; oasis_lib "async_ssl_bindings"
   ; file "META" ~section:"lib"
   ; file "_build/namespace_wrappers/ctypes_packed.cmi" ~section:"lib"
-  ; file "_build/namespace_wrappers/ctypes_foreign_threaded.cmi" ~section:"lib"
   ; file "_build/namespace_wrappers/ctypes_cstubs.cmi" ~section:"lib"
   ]

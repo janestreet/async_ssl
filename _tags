@@ -5,6 +5,7 @@
 <src/*.ml>: for-pack(Async_ssl)
 <bindings/*.ml>: for-pack(Async_ssl_bindings)
 <bindings/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-drop -bench-drop -inline-test-lib fake_for_drop)
+<bindings/*.ml{,i}>: pp_deps_for_bindings
 <src/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-drop -bench-drop -inline-test-lib fake_for_drop)
 <stubgen/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-drop -bench-drop -inline-test-lib fake_for_drop)
 <namespace_wrappers/*>: warn(-49)

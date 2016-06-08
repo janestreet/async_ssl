@@ -18,7 +18,6 @@ depends: [
   "conf-openssl"
   "core"            {>= "113.33.03" & < "113.34.00"}
   "ctypes"
-  "ctypes-foreign"
   "fieldslib"       {>= "113.33.03" & < "113.34.00"}
   "js-build-tools"  {build & >= "113.33.04" & < "113.34.00"}
   "ppx_assert"      {>= "113.33.03" & < "113.34.00"}

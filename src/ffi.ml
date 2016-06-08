@@ -9,7 +9,7 @@ module Unsigned = Ctypes_packed.Unsigned
 module Types = Async_ssl_bindings.Ffi_bindings.Types(Ffi_generated_types)
 module Bindings = Async_ssl_bindings.Ffi_bindings.Bindings(Ffi_generated)
 
-module Ssl_method = Async_ssl_bindings.Ffi_bindings.Ssl_method
+module Ssl_method = Bindings.Ssl_method
 
 module Ssl_error = struct
   type t =
@@ -119,14 +119,15 @@ module Ssl_ctx = struct
       let ver_method =
         let module V = Version in
         match ver with
-        | V.Sslv3  -> Ssl_method.sslv3  ()
-        | V.Tlsv1  -> Ssl_method.tlsv1  ()
+        | V.Sslv3   -> Ssl_method.sslv3   ()
+        | V.Tlsv1   -> Ssl_method.tlsv1   ()
         | V.Tlsv1_1 -> Ssl_method.tlsv1_1 ()
         | V.Tlsv1_2 -> Ssl_method.tlsv1_2 ()
-        | V.Sslv23 -> Ssl_method.sslv23 ()
+        | V.Sslv23  -> Ssl_method.sslv23  ()
       in
       match Bindings.Ssl_ctx.new_ ver_method with
-      | None   -> failwith "Could not allocate a new SSL context."
+      | None   ->
+        failwith "Could not allocate a new SSL context."
       | Some p ->
         Gc.add_finalizer_exn p Bindings.Ssl_ctx.free;
         p

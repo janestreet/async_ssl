@@ -57,7 +57,6 @@ Library async_ssl_bindings
   Modules:      Ffi_bindings
   BuildDepends: bin_prot,
                 ctypes,
-                ctypes.foreign.threaded,
                 ctypes.stubs,
                 fieldslib,
                 ppx_assert.runtime-lib,

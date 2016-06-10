@@ -17,6 +17,7 @@ int main ( int argc, char **argv ) {
   char *error = NULL;
   int i;
   int success = 0;
+  SSL_library_init();
   handle = dlopen(NULL,RTLD_NOW|RTLD_GLOBAL);
   if (!handle) {
     fprintf(stderr, "dlopen failed\n");

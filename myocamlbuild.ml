@@ -81,6 +81,10 @@ let dispatch = function
       ~dep:discover_c
       ~prod:discover_exe
       (fun _ _ ->
+        match run_and_read "uname" |> String.trim with
+        | "FreeBSD" ->
+         Cmd (S [Sh cc; A discover_c; S ccopt; S cclib; A"-o"; A discover_exe])
+        | _ ->
          Cmd (S [Sh cc; A discover_c; S ccopt; S cclib; A"-ldl"; A"-o"; A discover_exe]));
 
     rule "config.h file"

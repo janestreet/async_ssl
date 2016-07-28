@@ -27,10 +27,10 @@ int main ( int argc, char **argv ) {
     dlerror();
     *(void **) (&fun) = dlsym(handle, symbol[i]);
     if ((error = dlerror()) != NULL) {
-      printf("#undef JSC_%s\n", symbol[i]);
+      printf("#let JSC_%s = false\n", symbol[i]);
     }
     else {
-      printf("#define JSC_%s\n", symbol[i]);
+      printf("#let JSC_%s = true\n", symbol[i]);
       success++;
     }
   }

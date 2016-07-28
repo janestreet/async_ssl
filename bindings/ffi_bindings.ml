@@ -66,35 +66,35 @@ struct
     let helper name f = f name
 
     let sslv3 = helper "SSLv3_method"
-#ifdef JSC_SSLv3_method
+#if JSC_SSLv3_method
       implemented
 #else
       dummy
 #endif
 
     let tlsv1 = helper "TLSv1_method"
-#ifdef JSC_TLSv1_method
+#if JSC_TLSv1_method
       implemented
 #else
       dummy
 #endif
 
     let tlsv1_1 = helper "TLSv1_1_method"
-#ifdef JSC_TLSv1_1_method
+#if JSC_TLSv1_1_method
       implemented
 #else
       dummy
 #endif
 
     let tlsv1_2 = helper "TLSv1_2_method"
-#ifdef JSC_TLSv1_2_method
+#if JSC_TLSv1_2_method
       implemented
 #else
       dummy
 #endif
 
     let sslv23 = helper "SSLv23_method"
-#ifdef JSC_SSLv23_method
+#if JSC_SSLv23_method
       implemented
 #else
       dummy

@@ -1,0 +1,35 @@
+(rule
+ ((targets (ffi_generated.ml))
+  (deps (../stubgen/ffi_stubgen.exe))
+  (action "${<} -ml > ffi_generated.ml")))
+
+(rule
+ ((targets (ffi_generated_stubs.c))
+  (deps (../stubgen/ffi_stubgen.exe))
+  (action "${<} -c > ffi_generated_stubs.c")))
+
+(rule
+ ((targets (ffi_generated_types.ml))
+  (deps (../stubgen/ffi_ml_types_stubgen.exe))
+  (action "(echo 'open Ctypes_packed'; echo 'open Ctypes_cstubs'; ${<}) > ffi_generated_types.ml")))
+
+(library
+ ((name async_ssl)
+  (public_name async_ssl)
+  (modules (list (import
+                  version
+                  ffi_generated_types
+                  ffi_generated
+                  ffi
+                  ssl
+                  std)))
+  (c_names (ffi_generated_stubs))
+  (includes (../../../external/ctypes/src/ctypes))
+  ; For generated code
+  (extra_disabled_warnings (9 27 32 34))
+  (c_flags ((:standard \ -Werror -pedantic -Wall -Wunused) -w))
+  (libraries (async
+              core
+              async_ssl_bindings
+              ctypes_cstubs
+              ctypes_packed))))

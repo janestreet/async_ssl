@@ -1,0 +1,17 @@
+(executables
+ ((names (ffi_stubgen ffi_types_stubgen))
+  (public_release ((build (ffi_stubgen ffi_types_stubgen))))
+  (libraries (async_ssl_bindings
+              ctypes_cstubs
+              ctypes_packed))))
+
+(rule
+ ((targets (ffi_ml_types_stubgen.c))
+  (deps (./ffi_types_stubgen.exe))
+  (action "${<} > ${@}")))
+
+;; It would be lovely if jenga had rules to build from C.
+(rule
+ ((targets (ffi_ml_types_stubgen.exe))
+  (deps (./ffi_ml_types_stubgen.c))
+  (action "${CC} ${<} -I ../../../external/ctypes/src/ctypes -I ${ocaml_where} -o ${@}")))

@@ -1,0 +1,17 @@
+(rule
+ ((targets (discover.exe))
+  (deps (discover.c))
+  (action "${CC} -lssl discover.c -o discover.exe")))
+
+(rule
+ ((targets (config.h))
+  (deps (discover.exe))
+  (action "./${<} > config.h")))
+
+(library
+ ((name async_ssl_bindings)
+  (public_name async_ssl.bindings)
+  (public_release ((extra_opam_deps (((opam_package conf-openssl))))))
+  (libraries (ctypes_cstubs ctypes_packed))
+  (library_flags (-cclib -lssl -cclib -lcrypto))
+  (preprocessor_deps (config.h))))

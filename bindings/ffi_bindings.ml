@@ -48,6 +48,15 @@ module Bindings (F : Cstubs.FOREIGN) =
 struct
   let foreign = F.foreign
 
+  module Ctypes = struct
+    include Ctypes
+
+    let (@->)         = F.(@->)
+    let returning     = F.returning
+    let foreign       = F.foreign
+    let foreign_value = F.foreign_value
+  end
+
   (* Some systems with older OpenSSL don't support TLS 1.1 and 1.2.
      https://github.com/janestreet/async_ssl/issues/3
 

@@ -285,5 +285,8 @@ struct
 
     let check_private_key = foreign "SSL_check_private_key"
       Ctypes.(t @-> returning int)
+
+    let set_tlsext_host_name = foreign "SSL_set_tlsext_host_name"
+      Ctypes.(t @-> ptr char @-> returning int)
   end
 end

@@ -111,6 +111,7 @@ end
 val client
   :  ?version:Version.t
   -> ?name:string
+  -> ?hostname:string
   -> ?ca_file:string
   -> ?ca_path:string
   -> ?session:Session.t

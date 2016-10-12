@@ -201,6 +201,8 @@ module Ssl : sig
   val set_session : t -> Ssl_session.t -> unit Or_error.t
 
   val get1_session : t -> Ssl_session.t option
+
+  val set_tlsext_host_name : t -> string -> unit Or_error.t
 end
 
 (** Pops all errors off of the openssl error stack, returning them as a list of

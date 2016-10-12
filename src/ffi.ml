@@ -436,4 +436,12 @@ module Ssl = struct
     | 1 -> Ok ()
     | _ -> Or_error.error "SSL_check_private_key error"
              (get_error_stack ()) [%sexp_of: string list]
+
+  let set_tlsext_host_name context hostname =
+    let hostname = Ctypes.(coerce string (ptr char)) hostname in
+    match Bindings.Ssl.set_tlsext_host_name context hostname with
+    | 1 -> Ok ()
+    | 0 -> Or_error.error "SSL_set_tlsext_host_name error"
+                   (get_error_stack ()) [%sexp_of: string list]
+    | n -> failwithf "OpenSSL bug: SSL_set_tlsext_host_name returned %d" n ()
 end

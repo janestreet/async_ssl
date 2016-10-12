@@ -48,11 +48,13 @@ module Connection = struct
     ; closed           : unit Or_error.t Ivar.t
     } [@@deriving sexp_of, fields]
 
-  let create_exn ctx version client_or_server name
+  let create_exn ctx version client_or_server ?(hostname) name
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
     (* SSL is transferred in 16 kB packets.  Therefore, it makes sense for our buffers to
        be the same size. *)
     let ssl  = Ffi.Ssl.create_exn ctx in
+    Option.value_map hostname ~default:() ~f:(
+      fun h -> Ffi.Ssl.set_tlsext_host_name ssl h |> Or_error.ok_exn);
     Ffi.Ssl.set_method ssl version;
     let rbio = Ffi.Bio.create () in
     let wbio = Ffi.Bio.create () in
@@ -70,9 +72,9 @@ module Connection = struct
     }
   ;;
 
-  let create_client_exn ?name:(nm="(anonymous)") ?session ctx version
+  let create_client_exn ?hostname ?name:(nm="(anonymous)") ?session ctx version
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
-    create_exn ctx version `Client nm ~app_to_ssl ~ssl_to_app ~net_to_ssl
+    create_exn ctx version `Client ?hostname nm ~app_to_ssl ~ssl_to_app ~net_to_ssl
       ~ssl_to_net
   ;;
 
@@ -431,12 +433,12 @@ let context_exn ~name arg =
   | Error e -> failwiths "Could not initialize ssl context" e [%sexp_of: Error.t]
 ;;
 
-let client ?version:(version = Version.default) ?name ?ca_file ?ca_path ?session
+let client ?version:(version = Version.default) ?name ?hostname ?ca_file ?ca_path ?session
       ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
   Deferred.Or_error.try_with (fun () ->
     context_exn ~name (ca_file, ca_path)
     >>| fun context ->
-    Connection.create_client_exn ?name ?session context version
+    Connection.create_client_exn ?hostname ?name ?session context version
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)
   >>=? fun conn ->
   Option.iter session ~f:(Session.reuse ~conn);

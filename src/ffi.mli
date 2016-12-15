@@ -9,7 +9,7 @@
 *)
 open! Core.Std
 open! Async.Std
-open Ctypes_packed.Ctypes
+open Ctypes
 open! Import
 
 module Ssl_error : sig
@@ -22,15 +22,6 @@ module Ssl_error : sig
     | Want_X509_lookup
     | Syscall_error
     | Ssl_error
-  [@@deriving sexp_of]
-end
-
-module Verify_mode : sig
-  type t =
-    | Verify_none
-    | Verify_peer
-    | Verify_fail_if_no_peer_cert
-    | Verify_client_once
   [@@deriving sexp_of]
 end
 
@@ -67,7 +58,11 @@ module Ssl_ctx : sig
     -> t
     -> unit Or_error.t Deferred.t
 
-  val set_context_session_id : t -> string -> unit
+  (** Set context within which session can be reused, e.g. the name of the application
+      and/or the hostname and/or service name, etc. Server side only.
+
+      https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_set_session_id_context.html *)
+  val set_session_id_context : t -> string -> unit
 end
 
 module Bio : sig
@@ -201,6 +196,8 @@ module Ssl : sig
   val set_session : t -> Ssl_session.t -> unit Or_error.t
 
   val get1_session : t -> Ssl_session.t option
+
+  val set_tlsext_host_name : t -> string -> unit Or_error.t
 end
 
 (** Pops all errors off of the openssl error stack, returning them as a list of

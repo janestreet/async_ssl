@@ -2,10 +2,6 @@ open Core.Std
 open Async.Std
 open Import
 
-module Ctypes = Ctypes_packed.Ctypes
-module Signed = Ctypes_packed.Signed
-module Unsigned = Ctypes_packed.Unsigned
-
 module Types = Async_ssl_bindings.Ffi_bindings.Types(Ffi_generated_types)
 module Bindings = Async_ssl_bindings.Ffi_bindings.Bindings(Ffi_generated)
 
@@ -38,12 +34,7 @@ module Ssl_error = struct
 end
 
 module Verify_mode = struct
-  type t =
-    | Verify_none
-    | Verify_peer
-    | Verify_fail_if_no_peer_cert
-    | Verify_client_once
-  [@@deriving sexp_of]
+  include Verify_mode
 
   let to_int t =
     let open Types.Verify_mode in
@@ -133,13 +124,13 @@ module Ssl_ctx = struct
         p
   ;;
 
-  let set_context_session_id =
-    fun context id ->
+  let set_session_id_context =
+    fun context sid_ctx ->
       begin
-        let session_id = Ctypes.(coerce string (ptr char)) id in
+        let session_id_ctx = Ctypes.(coerce string (ptr char)) sid_ctx in
         match
-          Bindings.Ssl_ctx.set_session_id_context context session_id
-            (Unsigned.UInt.of_int (String.length id))
+          Bindings.Ssl_ctx.set_session_id_context context session_id_ctx
+            (Unsigned.UInt.of_int (String.length sid_ctx))
         with
         | 1 -> ()
         | x -> failwiths "Could not set session id context."
@@ -436,4 +427,12 @@ module Ssl = struct
     | 1 -> Ok ()
     | _ -> Or_error.error "SSL_check_private_key error"
              (get_error_stack ()) [%sexp_of: string list]
+
+  let set_tlsext_host_name context hostname =
+    let hostname = Ctypes.(coerce string (ptr char)) hostname in
+    match Bindings.Ssl.set_tlsext_host_name context hostname with
+    | 1 -> Ok ()
+    | 0 -> Or_error.error "SSL_set_tlsext_host_name error"
+                   (get_error_stack ()) [%sexp_of: string list]
+    | n -> failwithf "OpenSSL bug: SSL_set_tlsext_host_name returned %d" n ()
 end

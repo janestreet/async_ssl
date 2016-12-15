@@ -6,6 +6,7 @@ open! Core.Std
 open! Async.Std
 
 module Version : module type of Version
+module Verify_mode : module type of Verify_mode
 
 module Certificate : sig
   type t
@@ -106,13 +107,20 @@ end
     [Connection.session_reused] to find out if session resumption actually worked.
 
     Both [client] and [server] become determined when the handshake has completed.
+
+    The [hostname] sets the hostname to pass to the server using the SNI extension.
 *)
+
 
 val client
   :  ?version:Version.t
   -> ?name:string
+  -> ?hostname:string
   -> ?ca_file:string
   -> ?ca_path:string
+  -> ?crt_file:string
+  -> ?key_file:string
+  -> ?verify_modes:Verify_mode.t list
   -> ?session:Session.t
   -> app_to_ssl:(string Pipe.Reader.t)
   -> ssl_to_app:(string Pipe.Writer.t)
@@ -128,6 +136,7 @@ val server
   -> ?ca_path:string
   -> crt_file:string
   -> key_file:string
+  -> ?verify_modes:Verify_mode.t list
   -> app_to_ssl:(string Pipe.Reader.t)
   -> ssl_to_app:(string Pipe.Writer.t)
   -> net_to_ssl:(string Pipe.Reader.t)

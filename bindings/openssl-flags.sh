@@ -2,11 +2,6 @@
 
 set -e
 
-if [ -e setup.data ]; then
-    sed '/^openssl_cc\(lib\|opt\)=/d' setup.data > setup.data.new
-    mv setup.data.new setup.data
-fi
-
 openssl_cclib="-lssl -lcrypto"
 openssl_ccopt=""
 
@@ -20,8 +15,19 @@ if which pkg-config > /dev/null 2> /dev/null; then
     fi
 fi
 
-cat >> setup.data <<EOF
-openssl_cclib="$openssl_cclib"
-openssl_ccopt="$openssl_ccopt"
-EOF
+cclibs=""
+for i in $openssl_cclib; do
+    case $i in
+        -l*)
+            cclibs="$cclibs ${i/-l}"
+            ;;
+        *)
+            ;;
+    esac
+done
+
+echo "(${cclibs})" > openssl-cclib.sexp
+echo "(${openssl_ccopt})" > openssl-ccopt.sexp
+echo "${openssl_cclib}" > openssl-cclib
+echo "${openssl_ccopt}" > openssl-ccopt
 

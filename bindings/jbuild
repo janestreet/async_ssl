@@ -1,7 +1,15 @@
 (rule
+ ((targets (openssl-ccopt.sexp
+            openssl-cclib.sexp
+            openssl-ccopt
+            openssl-cclib))
+  (deps    (openssl-flags.sh))
+  (action  "./${<}")))
+
+(rule
  ((targets (discover.exe))
-  (deps (discover.c))
-  (action "${CC} -lssl discover.c -o discover.exe")))
+  (deps    (discover.c openssl-ccopt openssl-cclib))
+  (action "${CC} $(< openssl-ccopt) $(< openssl-cclib) -ldl discover.c -o discover.exe")))
 
 (rule
  ((targets (config.h))
@@ -11,7 +19,8 @@
 (library
  ((name async_ssl_bindings)
   (public_name async_ssl.bindings)
-  (public_release ((extra_opam_deps (((opam_package conf-openssl))))))
-  (libraries (ctypes_cstubs ctypes_packed))
-  (library_flags (-cclib -lssl -cclib -lcrypto))
+  (libraries (ctypes.stubs ctypes))
+  (virtual_deps (conf-openssl))
+  (c_flags (< openssl-ccopt.sexp))
+  (cclibs  (< openssl-cclib.sexp))
   (preprocessor_deps (config.h))))

@@ -1,6 +1,3 @@
-module Ctypes = Ctypes_packed.Ctypes
-module Cstubs = Ctypes_cstubs.Cstubs
-
 #import "config.h"
 
 module Types(F : Cstubs.Types.TYPE) =
@@ -47,6 +44,15 @@ end
 module Bindings (F : Cstubs.FOREIGN) =
 struct
   let foreign = F.foreign
+
+  module Ctypes = struct
+    include Ctypes
+
+    let (@->)         = F.(@->)
+    let returning     = F.returning
+    let foreign       = F.foreign
+    let foreign_value = F.foreign_value
+  end
 
   (* Some systems with older OpenSSL don't support TLS 1.1 and 1.2.
      https://github.com/janestreet/async_ssl/issues/3
@@ -285,5 +291,8 @@ struct
 
     let check_private_key = foreign "SSL_check_private_key"
       Ctypes.(t @-> returning int)
+
+    let set_tlsext_host_name = foreign "SSL_set_tlsext_host_name"
+      Ctypes.(t @-> ptr char @-> returning int)
   end
 end

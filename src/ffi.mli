@@ -31,6 +31,10 @@ module Ssl_ctx : sig
   (** Initialize a new SSL context, out of which all SSL connections are allocated. *)
   val create_exn : Version.t -> t
 
+  (** Set options on the SSL context, see [Opt] for available options.  Currently used for
+      disabling protocol versions. *)
+  val set_options : t -> Opt.t list -> unit
+
   (** Specifies the locations for the context, at which CA certificates for verification
       purposes are located.  The certificates available via [ca_file] and [ca_path] are
       trusted.

@@ -18,6 +18,7 @@
   (public_name async_ssl)
   (modules (import
             version
+            opt
             verify_mode
             ffi_generated_types
             ffi_generated
@@ -29,7 +30,7 @@
   ; For generated code
   (extra_disabled_warnings (9 27 32 34))
   (c_flags ((:standard \ -Werror -pedantic -Wall -Wunused) -w
-            (< ../bindings/openssl-ccopt.sexp)))
+            (:include ../bindings/openssl-ccopt.sexp)))
   (libraries (async
               core
               async_ssl_bindings

@@ -6,6 +6,7 @@ open! Core.Std
 open! Async.Std
 
 module Version : module type of Version
+module Opt : module type of Opt
 module Verify_mode : module type of Verify_mode
 
 module Certificate : sig
@@ -114,6 +115,7 @@ end
 
 val client
   :  ?version:Version.t
+  -> ?options:(Opt.t list)
   -> ?name:string
   -> ?hostname:string
   -> ?ca_file:string
@@ -131,6 +133,7 @@ val client
 
 val server
   :  ?version:Version.t
+  -> ?options:(Opt.t list)
   -> ?name:string
   -> ?ca_file:string
   -> ?ca_path:string

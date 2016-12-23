@@ -124,6 +124,27 @@ module Ssl_ctx = struct
         p
   ;;
 
+  let set_options =
+    fun context options ->
+      let opts = List.fold options ~init:(Unsigned.ULong.zero) ~f:(fun acc opt ->
+        let module O = Opt in
+        let o = match opt with
+          | O.No_sslv2   -> Types.Ssl_op.no_sslv2
+          | O.No_sslv3   -> Types.Ssl_op.no_sslv3
+          | O.No_tlsv1   -> Types.Ssl_op.no_tlsv1
+          | O.No_tlsv1_1 -> Types.Ssl_op.no_tlsv1_1
+          | O.No_tlsv1_2 -> Types.Ssl_op.no_tlsv1_2
+        in
+        Unsigned.ULong.logor acc o)
+      in
+      (* SSL_CTX_ctrl(3) returns the new options bitmask when cmd is SSL_CTRL_OPTIONS.  We
+         don't really have a use for this, so ignore. *)
+      let (_ : Unsigned.ULong.t) =
+        Bindings.Ssl_ctx.ctrl context Types.Ssl_ctrl.options opts Ctypes.null
+      in
+      ()
+  ;;
+
   let set_session_id_context =
     fun context sid_ctx ->
       begin

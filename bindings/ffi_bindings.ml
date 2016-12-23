@@ -2,6 +2,19 @@
 
 module Types(F : Cstubs.Types.TYPE) =
 struct
+  module Ssl_op = struct
+    let no_sslv2 =
+      F.constant "SSL_OP_NO_SSLv2" F.ulong
+    let no_sslv3 =
+      F.constant "SSL_OP_NO_SSLv3" F.ulong
+    let no_tlsv1 =
+      F.constant "SSL_OP_NO_TLSv1" F.ulong
+    let no_tlsv1_1 =
+      F.constant "SSL_OP_NO_TLSv1_1" F.ulong
+    let no_tlsv1_2 =
+      F.constant "SSL_OP_NO_TLSv1_2" F.ulong
+  end
+
   module Verify_mode = struct
     let verify_none =
       F.constant "SSL_VERIFY_NONE" F.int
@@ -38,6 +51,11 @@ struct
       F.constant "SSL_ERROR_SYSCALL" F.int
     let ssl =
       F.constant "SSL_ERROR_SSL" F.int
+  end
+
+  module Ssl_ctrl = struct
+    let options =
+      F.constant "SSL_CTRL_OPTIONS" F.int
   end
 end
 
@@ -140,6 +158,9 @@ struct
 
     let free = foreign "SSL_CTX_free"
       Ctypes.(t @-> returning void)
+
+    let ctrl = foreign "SSL_CTX_ctrl"
+      Ctypes.(t @-> int @-> ulong @-> ptr void @-> returning ulong)
 
     let load_verify_locations = foreign "SSL_CTX_load_verify_locations"
       Ctypes.(t @-> string_opt @-> string_opt @-> returning int)

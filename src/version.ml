@@ -9,4 +9,4 @@ type t =
   | Tlsv1_2
 [@@deriving sexp, compare]
 
-let default = Tlsv1_2
+let default = Sslv23

@@ -3,6 +3,7 @@ open Async.Std
 open Import
 
 module Version = Version
+module Opt = Opt
 module Verify_mode = Verify_mode
 
 module Certificate = struct
@@ -417,10 +418,10 @@ module Session = struct
     Option.iter (Set_once.get t) ~f:(State.reuse ~conn)
 end
 
-(* Global SSL contexts for every needed (name, ca_file, ca_path) tuple. This is cached
-   so that the same SSL_CTX object can be reused later *)
+(* Global SSL contexts for every needed (name, ca_file, ca_path, options) tuple. This is
+   cached so that the same SSL_CTX object can be reused later *)
 let context_exn =
-  Memo.general (fun (name, ca_file, ca_path) ->
+  Memo.general (fun (name, ca_file, ca_path, options) ->
     let ctx = Ffi.Ssl_ctx.create_exn Version.default in
     begin match ca_file, ca_path with
       | None, None -> return (Ok ())
@@ -431,13 +432,15 @@ let context_exn =
     | Ok ()   ->
       let session_id_context = Option.value name ~default:"default_session_id_context" in
       Ffi.Ssl_ctx.set_session_id_context ctx session_id_context;
+      Ffi.Ssl_ctx.set_options ctx options;
       ctx)
 ;;
 
-let client ?version:(version = Version.default) ?name ?hostname ?ca_file ?ca_path ?crt_file
-      ?key_file ?verify_modes ?session ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
+let client ?version:(version = Version.default) ?options:(options = Opt.default)
+      ?name ?hostname ?ca_file ?ca_path ?crt_file ?key_file ?verify_modes ?session
+      ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
   Deferred.Or_error.try_with (fun () ->
-    context_exn (name, ca_file, ca_path)
+    context_exn (name, ca_file, ca_path, options)
     >>= fun context ->
     Connection.create_client_exn ?hostname ?name ?crt_file ?key_file ?verify_modes context
       version ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)
@@ -453,10 +456,11 @@ let client ?version:(version = Version.default) ?name ?hostname ?ca_file ?ca_pat
   return (Ok conn)
 ;;
 
-let server ?version:(version = Version.default) ?name ?ca_file ?ca_path ~crt_file
-      ~key_file ?verify_modes ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
+let server ?version:(version = Version.default) ?options:(options = Opt.default)
+      ?name ?ca_file ?ca_path ~crt_file ~key_file ?verify_modes
+      ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
   Deferred.Or_error.try_with (fun () ->
-    context_exn (name, ca_file, ca_path)
+    context_exn (name, ca_file, ca_path, options)
     >>= fun context ->
     Connection.create_server_exn ?name context version ~crt_file ~key_file ?verify_modes
       ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)
@@ -512,7 +516,9 @@ let%test_module _ = (module struct
   let%test_unit _ =
     let session = Session.create () in
     let check_version conn =
-      [%test_result: Version.t] (Connection.version conn) ~expect:Version.default
+      (* Since Version.default is [Sslv23], we expect to negotiate the highest allowed
+         protocol version, which is [Tlsv1_2] *)
+      [%test_result: Version.t] (Connection.version conn) ~expect:Version.Tlsv1_2
     in
     let check_session_reused conn ~expect =
       [%test_result: bool] (Connection.session_reused conn) ~expect

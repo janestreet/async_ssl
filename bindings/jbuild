@@ -9,7 +9,7 @@
 (rule
  ((targets (discover.exe))
   (deps    (discover.c openssl-ccopt openssl-cclib))
-  (action "${CC} $(< openssl-ccopt) $(< openssl-cclib) -ldl discover.c -o discover.exe")))
+  (action "${CC} $(< openssl-ccopt) discover.c $(< openssl-cclib) -ldl -o discover.exe")))
 
 (rule
  ((targets (config.h))

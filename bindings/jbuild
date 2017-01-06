@@ -4,7 +4,7 @@
             openssl-ccopt
             openssl-cclib))
   (deps    (config/discover.exe))
-  (action  "./${<}")))
+  (action  (run ${<} -ocamlc ${OCAMLC}))))
 
 (rule
  ((targets (discover.exe))

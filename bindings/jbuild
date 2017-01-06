@@ -3,7 +3,7 @@
             openssl-cclib.sexp
             openssl-ccopt
             openssl-cclib))
-  (deps    (openssl-flags.sh))
+  (deps    (config/discover.exe))
   (action  "./${<}")))
 
 (rule
@@ -21,6 +21,6 @@
   (public_name async_ssl.bindings)
   (libraries (ctypes.stubs ctypes))
   (virtual_deps (conf-openssl))
-  (c_flags      (:include openssl-ccopt.sexp))
-  (c_libraries  (:include openssl-cclib.sexp))
+  (c_flags         (:include openssl-ccopt.sexp))
+  (c_library_flags (:include openssl-cclib.sexp))
   (preprocessor_deps (config.h))))

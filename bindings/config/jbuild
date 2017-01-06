@@ -1,0 +1,3 @@
+(executables
+ ((names (discover))
+  (libraries (base stdio configurator))))

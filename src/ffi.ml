@@ -397,7 +397,13 @@ module Ssl = struct
 
   let get_peer_certificate t =
     let cert = Bindings.Ssl.get_peer_certificate t in
-    if cert = Ctypes.null then None else Some cert
+    if cert = Ctypes.null
+    then None
+    else begin
+      Gc.add_finalizer_exn cert Bindings.X509.free;
+      Some cert
+    end
+  ;;
 
   let get_verify_result t =
     let result = Bindings.Ssl.get_verify_result t in

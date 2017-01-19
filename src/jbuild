@@ -35,4 +35,6 @@
               core
               async_ssl_bindings
               ctypes.stubs
-              ctypes))))
+              ctypes))
+    (inline_tests ((deps (do_not_use_in_production.crt
+                          do_not_use_in_production.key))))))

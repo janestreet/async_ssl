@@ -153,6 +153,7 @@ struct
   struct
     let t = Ctypes.(ptr void)
 
+    (* free with SSL_CTX_free() (source: manpage of SSL_CTX_free(3)) *)
     let new_ = foreign "SSL_CTX_new"
       Ctypes.(ptr void @-> returning (ptr_opt void))
 
@@ -173,6 +174,9 @@ struct
   struct
     let t = Ctypes.(ptr void) (* for use in ctypes signatures *)
 
+    (* Returns a [BIO *] that is later assigned to an [SSL] object by calling
+       SSL_set_bio(3).  The [BIO *] is freed automatically when calling SSL_free().
+       (source: manpage of SSL_free(3)) *)
     let new_ = foreign "BIO_new"
       Ctypes.(ptr void @-> returning t)
 
@@ -192,6 +196,8 @@ struct
     let obj2nid = foreign "OBJ_obj2nid"
       Ctypes.(t @-> returning int)
 
+    (* returns pointer to statically-allocated string, do not free (source: obj_dat.[hc]
+       in openssl source) *)
     let nid2sn = foreign "OBJ_nid2sn"
       Ctypes.(int @-> returning string_opt)
   end
@@ -202,6 +208,7 @@ struct
     let length = foreign "ASN1_STRING_length"
       Ctypes.(t @-> returning int)
 
+    (* returns internal pointer, do not free (source: manpage of ASN1_STRING_data(3)) *)
     let data = foreign "ASN1_STRING_data"
       Ctypes.(t @-> returning string)
   end
@@ -209,9 +216,13 @@ struct
   module X509_name_entry = struct
     let t = Ctypes.(ptr void)
 
+    (* returns pointer to field in [t], do not free (source: x509name.c in openssl
+       source) *)
     let get_object = foreign "X509_NAME_ENTRY_get_object"
       Ctypes.(t @-> returning ASN1_object.t)
 
+    (* returns pointer to field in [t], do not free (source: x509name.c in openssl
+       source) *)
     let get_data = foreign "X509_NAME_ENTRY_get_data"
       Ctypes.(t @-> returning ASN1_string.t)
   end
@@ -222,6 +233,8 @@ struct
     let entry_count = foreign "X509_NAME_entry_count"
       Ctypes.(t @-> returning int)
 
+    (* returns internal pointer, do not free (source: manpage of
+       X509_NAME_get_entry(3)) *)
     let get_entry = foreign "X509_NAME_get_entry"
       Ctypes.(t @-> int @-> returning X509_name_entry.t)
   end
@@ -229,16 +242,22 @@ struct
   module X509 = struct
     let t = Ctypes.(ptr void)
 
+    (* returns internal pointer, do not free (source: manpage of
+       X509_get_subject_name(3)) *)
     let get_subject_name = foreign "X509_get_subject_name"
       Ctypes.(t @-> returning X509_name.t)
 
     let verify_cert_error_string = foreign "X509_verify_cert_error_string"
       Ctypes.(long @-> returning string_opt)
+
+    let free = foreign "X509_free"
+      Ctypes.(t @-> returning void)
   end
 
   module Ssl_session = struct
     let t = Ctypes.(ptr void)
 
+    (* free with SSL_SESSION_free() (source: manpage of SSL_SESSION_free(3)) *)
     let new_ = foreign "SSL_SESSION_new"
       Ctypes.(void @-> returning t)
 
@@ -250,6 +269,7 @@ struct
   struct
     let t = Ctypes.(ptr void)
 
+    (* free with SSL_free() (source: manpage of SSL_free(3)) *)
     let new_ = foreign "SSL_new"
       Ctypes.(Ssl_ctx.t @-> returning t)
 
@@ -292,6 +312,7 @@ struct
     let set_verify = foreign "SSL_set_verify"
       Ctypes.(t @-> int @-> ptr void @-> returning void)
 
+    (* free with X509_free() (source: manpage of SSL_get_peer_certificate(3)) *)
     let get_peer_certificate = foreign "SSL_get_peer_certificate"
       Ctypes.(t @-> returning X509.t)
 
@@ -307,6 +328,7 @@ struct
     let session_reused = foreign "SSL_session_reused"
       Ctypes.(t @-> returning int)
 
+    (* free with SSL_session_free() (source: manpage of SSL_get1_session(3)) *)
     let get1_session = foreign "SSL_get1_session"
       Ctypes.(t @-> returning Ssl_session.t)
 

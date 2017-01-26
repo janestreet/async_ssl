@@ -1,6 +1,6 @@
 (** The protocol and security level that libopenssl uses. *)
 
-open! Core.Std
+open! Core
 
 (** Best practice: Leave this at the default of [Sslv23] to allow negotiation, and use an
     option list ([Opt.t list]) when calling [Ssl.server] or [Ssl.client] to disable

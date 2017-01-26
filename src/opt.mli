@@ -1,6 +1,6 @@
 (** OpenSSL context options. *)
 
-open! Core.Std
+open! Core
 
 (** This mli currently only has SSL/TLS protocol version-related options, though it should
     also support additions of any option that can be passed to SSL_CTX_set_options(3) and

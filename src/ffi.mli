@@ -7,7 +7,7 @@
     This module is for use with Async, which has no threads. You void your warranty
     by calling any of these functions from multiple threads at the same time.
 *)
-open! Core.Std
+open! Core
 open! Async.Std
 open Ctypes
 open! Import

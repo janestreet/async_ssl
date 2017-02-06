@@ -8,7 +8,7 @@
     by calling any of these functions from multiple threads at the same time.
 *)
 open! Core
-open! Async.Std
+open! Async
 open Ctypes
 open! Import
 

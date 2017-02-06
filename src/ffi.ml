@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 open Import
 
 module Types = Async_ssl_bindings.Ffi_bindings.Types(Ffi_generated_types)

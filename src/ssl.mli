@@ -3,7 +3,7 @@
     This module allows you to create an SSL client and server, with encrypted
     communication between both. *)
 open! Core
-open! Async.Std
+open! Async
 
 module Version : module type of Version
 module Opt : module type of Opt

@@ -24,3 +24,5 @@
   (c_flags         (:include openssl-ccopt.sexp))
   (c_library_flags (:include openssl-cclib.sexp))
   (preprocessor_deps (config.h))))
+
+(jbuild_version jane_street)

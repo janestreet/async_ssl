@@ -1,3 +1,5 @@
 (executables
  ((names (discover))
   (libraries (base stdio configurator))))
+
+(jbuild_version jane_street)

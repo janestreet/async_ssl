@@ -38,3 +38,5 @@
               ctypes))
     (inline_tests ((deps (do_not_use_in_production.crt
                           do_not_use_in_production.key))))))
+
+(jbuild_version jane_street)

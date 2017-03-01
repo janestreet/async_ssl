@@ -531,7 +531,7 @@ let%test_module _ = (module struct
       in
       let value =
         let alist = Certificate.subject cert in
-        List.Assoc.find_exn alist "CN"
+        List.Assoc.find_exn alist ~equal:String.equal "CN"
       in
       [%test_result: string] value ~expect:"testbox"
     in

@@ -23,6 +23,7 @@
   (virtual_deps (conf-openssl))
   (c_flags         (:include openssl-ccopt.sexp))
   (c_library_flags (:include openssl-cclib.sexp))
-  (preprocessor_deps (config.h))))
+  (preprocessor_deps (config.h))
+  (preprocess (pps (ppx_jane)))))
 
 (jbuild_version jane_street)

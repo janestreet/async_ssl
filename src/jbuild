@@ -26,9 +26,7 @@
             ssl
             std))
   (c_names (ffi_generated_stubs))
-  (includes (../../../external/ctypes/src/ctypes))
-  ; For generated code
-  (extra_disabled_warnings (9 27 32 34))
+  (flags (:standard -w -9-27-32-34))
   (c_flags ((:standard \ -Werror -pedantic -Wall -Wunused) -w
             (:include ../bindings/openssl-ccopt.sexp)))
   (libraries (async
@@ -36,7 +34,7 @@
               async_ssl_bindings
               ctypes.stubs
               ctypes))
-    (inline_tests ((deps (do_not_use_in_production.crt
-                          do_not_use_in_production.key))))))
+  (preprocess (pps (ppx_jane)))
+))
 
 (jbuild_version jane_street)

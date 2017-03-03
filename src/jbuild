@@ -1,17 +1,17 @@
 (rule
  ((targets (ffi_generated.ml))
   (deps (../stubgen/ffi_stubgen.exe))
-  (action "${<} -ml > ffi_generated.ml")))
+  (action (bash "${<} -ml > ffi_generated.ml"))))
 
 (rule
  ((targets (ffi_generated_stubs.c))
   (deps (../stubgen/ffi_stubgen.exe))
-  (action "${<} -c > ffi_generated_stubs.c")))
+  (action (bash "${<} -c > ffi_generated_stubs.c"))))
 
 (rule
  ((targets (ffi_generated_types.ml))
   (deps (../stubgen/ffi_ml_types_stubgen.exe))
-  (action "${<} > ffi_generated_types.ml")))
+  (action (bash "${<} > ffi_generated_types.ml"))))
 
 (library
  ((name async_ssl)

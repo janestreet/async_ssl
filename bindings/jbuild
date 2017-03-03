@@ -9,12 +9,12 @@
 (rule
  ((targets (discover.exe))
   (deps    (discover.c openssl-ccopt openssl-cclib))
-  (action "${CC} $(< openssl-ccopt) discover.c $(< openssl-cclib) -ldl -o discover.exe")))
+  (action (bash "${CC} $(< openssl-ccopt) discover.c $(< openssl-cclib) -ldl -o discover.exe"))))
 
 (rule
  ((targets (config.h))
   (deps (discover.exe))
-  (action "./${<} > config.h")))
+  (action (bash "./${<} > config.h"))))
 
 (library
  ((name async_ssl_bindings)

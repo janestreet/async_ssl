@@ -8,7 +8,7 @@
 (rule
  ((targets (ffi_ml_types_stubgen.c))
   (deps (./ffi_types_stubgen.exe))
-  (action "./${<} > ${@}")))
+  (action (bash "./${<} > ${@}"))))
 
 ;; It would be lovely if jenga had rules to build from C.
 (rule
@@ -16,10 +16,10 @@
   (deps    (./ffi_ml_types_stubgen.c
             ../bindings/openssl-ccopt
             ../bindings/openssl-cclib))
-  (action "\
+  (action (bash "\
 ${CC} ${<} $(< ../bindings/openssl-ccopt) $(< ../bindings/openssl-cclib) \
   -I `dirname ${findlib:ctypes:ctypes_cstubs_internals.h}` \
-  -I ${ocaml_where} -o ${@}"
+  -I ${ocaml_where} -o ${@}")
    )))
 
 (jbuild_version jane_street)

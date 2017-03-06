@@ -24,6 +24,6 @@
   (c_flags         (:include openssl-ccopt.sexp))
   (c_library_flags (:include openssl-cclib.sexp))
   (preprocessor_deps (config.h))
-  (preprocess (pps (ppx_jane)))))
+  (preprocess (pps (ppx_jane ppx_driver.runner)))))
 
 (jbuild_version jane_street)

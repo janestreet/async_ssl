@@ -29,6 +29,7 @@
   (flags (:standard -w -9-27-32-34))
   (c_flags ((:standard \ -Werror -pedantic -Wall -Wunused) -w
             (:include ../bindings/openssl-ccopt.sexp)))
+  (c_library_flags (:standard (:include ../bindings/openssl-cclib.sexp)))
   (libraries (async
               core
               async_ssl_bindings

@@ -412,7 +412,7 @@ module Session = struct
   let remember t ~conn =
     match Set_once.get t with
     | Some _ -> ()
-    | None -> Option.iter (State.get ~conn) ~f:(Set_once.set_exn t)
+    | None -> Option.iter (State.get ~conn) ~f:(Set_once.set_exn t [%here])
 
   let reuse t ~conn =
     Option.iter (Set_once.get t) ~f:(State.reuse ~conn)

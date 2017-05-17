@@ -418,11 +418,11 @@ module Session = struct
     Option.iter (Set_once.get t) ~f:(State.reuse ~conn)
 end
 
-(* Global SSL contexts for every needed (name, ca_file, ca_path, options) tuple. This is
-   cached so that the same SSL_CTX object can be reused later *)
+(* Global SSL contexts for every needed (name, version, ca_file, ca_path, options)
+   tuple. This is cached so that the same SSL_CTX object can be reused later *)
 let context_exn =
-  Memo.general (fun (name, ca_file, ca_path, options) ->
-    let ctx = Ffi.Ssl_ctx.create_exn Version.default in
+  Memo.general (fun (name, version, ca_file, ca_path, options) ->
+    let ctx = Ffi.Ssl_ctx.create_exn version in
     begin match ca_file, ca_path with
       | None, None -> return (Ok ())
       | _, _       -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
@@ -440,7 +440,7 @@ let client ?version:(version = Version.default) ?options:(options = Opt.default)
       ?name ?hostname ?ca_file ?ca_path ?crt_file ?key_file ?verify_modes ?session
       ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
   Deferred.Or_error.try_with (fun () ->
-    context_exn (name, ca_file, ca_path, options)
+    context_exn (name, version, ca_file, ca_path, options)
     >>= fun context ->
     Connection.create_client_exn ?hostname ?name ?crt_file ?key_file ?verify_modes context
       version ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)
@@ -460,7 +460,7 @@ let server ?version:(version = Version.default) ?options:(options = Opt.default)
       ?name ?ca_file ?ca_path ~crt_file ~key_file ?verify_modes
       ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
   Deferred.Or_error.try_with (fun () ->
-    context_exn (name, ca_file, ca_path, options)
+    context_exn (name, version, ca_file, ca_path, options)
     >>= fun context ->
     Connection.create_server_exn ?name context version ~crt_file ~key_file ?verify_modes
       ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)

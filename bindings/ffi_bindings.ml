@@ -52,11 +52,6 @@ struct
     let ssl =
       F.constant "SSL_ERROR_SSL" F.int
   end
-
-  module Ssl_ctrl = struct
-    let options =
-      F.constant "SSL_CTRL_OPTIONS" F.int
-  end
 end
 
 module Bindings (F : Cstubs.FOREIGN) =
@@ -160,14 +155,14 @@ struct
     let free = foreign "SSL_CTX_free"
       Ctypes.(t @-> returning void)
 
-    let ctrl = foreign "SSL_CTX_ctrl"
-      Ctypes.(t @-> int @-> ulong @-> ptr void @-> returning ulong)
-
     let load_verify_locations = foreign "SSL_CTX_load_verify_locations"
       Ctypes.(t @-> string_opt @-> string_opt @-> returning int)
 
     let set_session_id_context = foreign "SSL_CTX_set_session_id_context"
       Ctypes.(t @-> ptr char @-> uint @-> returning int)
+
+    let set_options = foreign "SSL_CTX_set_options"
+      Ctypes.(t @-> ulong @-> returning ulong)
   end
 
   module Bio =

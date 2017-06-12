@@ -2,6 +2,7 @@
 
     This module allows you to create an SSL client and server, with encrypted
     communication between both. *)
+
 open! Core
 open! Async
 
@@ -124,6 +125,9 @@ val client
   -> ?key_file:string
   -> ?verify_modes:Verify_mode.t list
   -> ?session:Session.t
+  (** Use [allowed_ciphers] to control which ciphers should be used.
+      See CIPHERS(1), and `openssl ciphers -v` *)
+  -> ?allowed_ciphers:[`Default | `Only of string list]
   -> app_to_ssl:(string Pipe.Reader.t)
   -> ssl_to_app:(string Pipe.Writer.t)
   -> net_to_ssl:(string Pipe.Reader.t)
@@ -140,6 +144,9 @@ val server
   -> crt_file:string
   -> key_file:string
   -> ?verify_modes:Verify_mode.t list
+(** Use [allowed_ciphers] to control which ciphers should be used.
+    See CIPHERS(1), and `openssl ciphers -v` *)
+  -> ?allowed_ciphers:[`Default | `Only of string list]
   -> app_to_ssl:(string Pipe.Reader.t)
   -> ssl_to_app:(string Pipe.Writer.t)
   -> net_to_ssl:(string Pipe.Reader.t)

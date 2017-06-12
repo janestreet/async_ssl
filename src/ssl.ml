@@ -48,7 +48,17 @@ module Connection = struct
     ; closed           : unit Or_error.t Ivar.t
     } [@@deriving sexp_of, fields]
 
-  let create_exn ?verify_modes ctx version client_or_server ?(hostname) name
+  let _tmp_rsa =
+    let exponent = 65537 (* small random odd (prime?), e.g. 3, 17 or 65537 *) in
+    Memo.general ~hashable:Int.hashable (fun key_length ->
+      Ffi.Rsa.generate_key ~key_length ~exponent ())
+
+  let tmp_ecdh =
+    let curve = Ffi.Ec_key.Curve.prime256v1 in
+    Ffi.Ec_key.new_by_curve_name curve
+
+
+  let create_exn ?verify_modes ?(allowed_ciphers=`Default) ctx version client_or_server ?(hostname) name
                  ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
     (* SSL is transferred in 16 kB packets.  Therefore, it makes sense for our buffers to
        be the same size. *)
@@ -64,6 +74,13 @@ module Connection = struct
        connection to the caller. The caller must be careful to check that the
        certificate verified correctly. *)
     Option.iter verify_modes ~f:(Ffi.Ssl.set_verify ssl);
+    (match allowed_ciphers with
+     | `Default -> ()
+     | `Only allowed_ciphers -> Ffi.Ssl.set_cipher_list_exn ssl allowed_ciphers);
+    Ffi.Ssl.set_tmp_dh_callback ssl ~f:(fun ~is_export:_ ~key_length ->
+      Rfc3526.modp key_length);
+    (* Ffi.Ssl.set_tmp_rsa_callback ssl ~f:(fun ~is_export:_ ~key_length -> tmp_rsa key_length); *)
+    Ffi.Ssl.set_tmp_ecdh ssl tmp_ecdh;
     Ffi.Ssl.set_bio ssl ~input:rbio ~output:wbio;
     let closed = Ivar.create () in
     { ssl; client_or_server; rbio; wbio; bstr; name
@@ -96,9 +113,9 @@ module Connection = struct
   ;;
 
   let create_client_exn ?hostname ?name:(nm="(anonymous)") ?crt_file ?key_file ?verify_modes
-        ctx version ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
+        ?allowed_ciphers ctx version ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
     let connection =
-      create_exn ?verify_modes ctx version `Client ?hostname nm
+      create_exn ?verify_modes ?allowed_ciphers ctx version `Client ?hostname nm
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net
     in
     use_crt_and_key connection ?crt_file ?key_file
@@ -106,10 +123,10 @@ module Connection = struct
     return connection
   ;;
 
-  let create_server_exn ?name:(nm="(anonymous)") ?verify_modes ctx version ~crt_file
+  let create_server_exn ?name:(nm="(anonymous)") ?verify_modes ?allowed_ciphers ctx version ~crt_file
         ~key_file ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
     let connection =
-      create_exn ?verify_modes ctx version `Server nm
+      create_exn ?verify_modes ?allowed_ciphers ctx version `Server nm
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net
     in
     use_crt_and_key connection ~crt_file ~key_file
@@ -438,12 +455,12 @@ let context_exn =
 
 let client ?version:(version = Version.default) ?options:(options = Opt.default)
       ?name ?hostname ?ca_file ?ca_path ?crt_file ?key_file ?verify_modes ?session
-      ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
+      ?allowed_ciphers ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
   Deferred.Or_error.try_with (fun () ->
     context_exn (name, version, ca_file, ca_path, options)
     >>= fun context ->
-    Connection.create_client_exn ?hostname ?name ?crt_file ?key_file ?verify_modes context
-      version ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)
+    Connection.create_client_exn ?hostname ?name ?crt_file ?key_file ?verify_modes
+      ?allowed_ciphers context version ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)
   >>=? fun conn ->
   Option.iter session ~f:(Session.reuse ~conn);
   Connection.with_cleanup conn ~f:(fun () -> Connection.run_handshake conn)
@@ -457,13 +474,13 @@ let client ?version:(version = Version.default) ?options:(options = Opt.default)
 ;;
 
 let server ?version:(version = Version.default) ?options:(options = Opt.default)
-      ?name ?ca_file ?ca_path ~crt_file ~key_file ?verify_modes
+      ?name ?ca_file ?ca_path ~crt_file ~key_file ?verify_modes ?allowed_ciphers
       ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
   Deferred.Or_error.try_with (fun () ->
     context_exn (name, version, ca_file, ca_path, options)
     >>= fun context ->
     Connection.create_server_exn ?name context version ~crt_file ~key_file ?verify_modes
-      ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)
+      ?allowed_ciphers ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net)
   >>=? fun conn ->
   Connection.with_cleanup conn ~f:(fun () -> Connection.run_handshake conn)
   >>=? fun () ->

@@ -82,19 +82,28 @@ let add_all_algorithms =
     Bindings.add_all_digests ();
 ;;
 
-(* Call the openssl initialization method if it hasn't been already. *)
-(* val possibly_init : unit -> unit *)
-let possibly_init =
-  let initialized = ref false in
-  fun () ->
-    if not !initialized then begin
-      initialized := true;
-      (* SSL_library_init() always returns "1", so it is safe to discard the return
-         value. *)
-      ignore (Bindings.init () : Unsigned.ulong);
-      Bindings.ssl_load_error_strings ();
-      add_all_algorithms ();
-    end
+(* openssl initialization method, run during module initialization. Hopefully
+   before anything uses OpenSSL. *)
+let () = (* Static initialization *)
+  Bindings.ssl_load_error_strings ();
+  Bindings.err_load_crypto_strings ();
+
+  (* Use /etc/ssl/openssl.conf or similar *)
+  Bindings.openssl_config None;
+
+  (* Make hardware accelaration available *)
+  Bindings.Engine.load_builtin_engines ();
+  (* But unload RAND because RDRAND is suspected to have been compromised *)
+  Bindings.Engine.unregister_RAND ();
+  (* Finish engine registration *)
+  Bindings.Engine.register_all_complete ();
+
+  (* SSL_library_init() initializes the SSL algorithms.
+     It always returns "1", so it is safe to discard the return value *)
+  ignore (Bindings.init () : Unsigned.ulong);
+
+  (* Load any other algorithms, just in case *)
+  add_all_algorithms ();
 ;;
 
 module Ssl_ctx = struct
@@ -106,7 +115,6 @@ module Ssl_ctx = struct
 
   let create_exn =
     fun ver ->
-      possibly_init ();
       let ver_method =
         let module V = Version in
         match ver with
@@ -254,6 +262,96 @@ module Ssl_session = struct
   ;;
 end
 
+module Bignum = struct
+  type t = unit Ctypes.ptr
+
+  let create_no_gc (`hex hex) =
+    let p_ref = Ctypes.allocate Ctypes.(ptr void) Ctypes.null in
+    let _len = Bindings.Bignum.hex2bn p_ref hex in
+    let p = Ctypes.(!@) p_ref in
+    if p = Ctypes.null
+    then failwith "Unable to allocate/init Bignum."
+    else begin
+      p
+    end
+end
+
+module Dh = struct
+  type t = Bindings.Dh.t
+
+  let create ~prime ~generator : t =
+    let p = Bindings.Dh.new_ () in
+    if Ctypes.is_null p
+    then failwith "Unable to allocate/generate DH parameters."
+    else begin
+      Gc.add_finalizer_exn p Bindings.Dh.free;
+      Ctypes.setf (Ctypes.(!@) p) Bindings.Dh.p (Bignum.create_no_gc prime);
+      Ctypes.setf (Ctypes.(!@) p) Bindings.Dh.g (Bignum.create_no_gc generator);
+      p
+    end
+
+  let generate_parameters ~prime_len ~generator ?progress () : t=
+    let p =
+      Bindings.Dh.generate_parameters
+        prime_len generator (Option.map progress ~f:(fun f a b _ -> f a b))
+        Ctypes.null
+    in
+    if Ctypes.is_null p
+    then failwith "Unable to allocate/generate DH parameters."
+    else begin
+      Gc.add_finalizer_exn p Bindings.Dh.free;
+      p
+    end
+end
+
+module Ec_key = struct
+  type t = unit Ctypes.ptr
+
+  module Curve = struct
+    module T = struct
+      type t = int
+      let of_string = Bindings.ASN1_object.txt2nid
+      let to_string t =
+        match Bindings.ASN1_object.nid2sn t with
+        | None -> Int.to_string t
+        | Some s -> s
+    end
+    include T
+    include Sexpable.Of_stringable(T)
+
+    let secp384r1 = of_string "secp384r1"
+    let secp521r1 = of_string "secp521r1"
+    let prime256v1 = of_string "prime256v1"
+  end
+
+  let new_by_curve_name curve : t=
+    let p = Bindings.Ec_key.new_by_curve_name curve in
+    if p = Ctypes.null
+    then failwith "Unable to allocate/generate EC key."
+    else begin
+      Gc.add_finalizer_exn p Bindings.Ec_key.free;
+      p
+    end
+end
+
+module Rsa = struct
+  type t = unit Ctypes.ptr
+  let t = Ctypes.(ptr void)
+
+  let generate_key ~key_length ~exponent ?progress () : t=
+    let p =
+      Bindings.Rsa.generate_key
+        key_length exponent (Option.map progress ~f:(fun f a b _ -> f a b))
+        Ctypes.null
+    in
+    if p = Ctypes.null
+    then failwith "Unable to allocate/generate RSA key pair."
+    else begin
+      Gc.add_finalizer_exn p Bindings.Rsa.free;
+      p
+    end
+end
+
 module Ssl = struct
 
   type t = unit Ctypes.ptr
@@ -268,8 +366,8 @@ module Ssl = struct
       if p = Ctypes.null
       then failwith "Unable to allocate an SSL connection."
       else begin
-      Gc.add_finalizer_exn p Bindings.Ssl.free;
-      p
+        Gc.add_finalizer_exn p Bindings.Ssl.free;
+        p
       end
   ;;
 
@@ -458,6 +556,32 @@ module Ssl = struct
     match Bindings.Ssl.set_tlsext_host_name context hostname with
     | 1 -> Ok ()
     | 0 -> Or_error.error "SSL_set_tlsext_host_name error"
-                   (get_error_stack ()) [%sexp_of: string list]
+             (get_error_stack ()) [%sexp_of: string list]
     | n -> failwithf "OpenSSL bug: SSL_set_tlsext_host_name returned %d" n ()
+
+  let set_cipher_list_exn t ciphers =
+    match Bindings.Ssl.set_cipher_list t (String.concat ~sep:":" ("-ALL"::ciphers)) with
+    | 1 -> ()
+    | 0 -> failwithf
+             !"SSL_set_cipher_list error: %{sexp:string list}"
+             (get_error_stack ()) ()
+    | n -> failwithf "OpenSSL bug: SSL_set_cipher_list returned %d" n ()
+
+  let set_tmp_dh_callback t ~f =
+    Bindings.Ssl.set_tmp_dh_callback t (fun _t is_export key_length ->
+      f ~is_export ~key_length)
+
+  let set_tmp_ecdh = Bindings.Ssl.set_tmp_ecdh
+
+  let set_tmp_rsa_callback t ~f =
+    Bindings.Ssl.set_tmp_rsa_callback t (fun _t is_export key_length ->
+      f ~is_export ~key_length)
+
+  let get_cipher_list t =
+    let rec loop i acc =
+      match Bindings.Ssl.get_cipher_list t i with
+      | Some c -> loop (i+1) (c::acc)
+      | None -> List.rev acc
+    in
+    loop 0 []
 end

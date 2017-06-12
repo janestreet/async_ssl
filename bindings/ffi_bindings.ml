@@ -58,6 +58,10 @@ module Bindings (F : Cstubs.FOREIGN) =
 struct
   let foreign = F.foreign
 
+  module Foreign = struct
+    include Ctypes
+    include Foreign
+  end
   module Ctypes = struct
     include Ctypes
 
@@ -138,11 +142,29 @@ struct
   let add_all_ciphers = foreign "OpenSSL_add_all_ciphers"
     Ctypes.(void @-> returning void)
 
+  let add_ssl_algorithms = foreign "OpenSSL_add_ssl_algorithms"
+    Ctypes.(void @-> returning void)
+
+  let openssl_config = foreign "OPENSSL_config"
+    Ctypes.(string_opt @-> returning void)
+
   let init = foreign "SSL_library_init"
     Ctypes.(void @-> returning ulong)
 
   let ssl_load_error_strings = foreign "SSL_load_error_strings"
     Ctypes.(void @-> returning void)
+
+  let err_load_crypto_strings = foreign "ERR_load_crypto_strings"
+     Ctypes.(void @-> returning void)
+
+module Engine = struct
+  let load_builtin_engines = foreign "ENGINE_load_builtin_engines"
+     Ctypes.(void @-> returning void)
+  let unregister_RAND = foreign "ENGINE_unregister_RAND"
+     Ctypes.(void @-> returning void)
+  let register_all_complete = foreign "ENGINE_register_all_complete"
+                                Ctypes.(void @-> returning void)
+                                end
 
   module Ssl_ctx =
   struct
@@ -160,6 +182,9 @@ struct
 
     let set_session_id_context = foreign "SSL_CTX_set_session_id_context"
       Ctypes.(t @-> ptr char @-> uint @-> returning int)
+
+    let set_cipher_list = foreign "SSL_CTX_set_cipher_list"
+      Ctypes.(t @-> string @-> returning int)
 
     let set_options = foreign "SSL_CTX_set_options"
       Ctypes.(t @-> ulong @-> returning ulong)
@@ -195,6 +220,9 @@ struct
        in openssl source) *)
     let nid2sn = foreign "OBJ_nid2sn"
       Ctypes.(int @-> returning string_opt)
+
+    let txt2nid = foreign "OBJ_txt2nid"
+      Ctypes.(string @-> returning int)
   end
 
   module ASN1_string = struct
@@ -260,6 +288,68 @@ struct
       Ctypes.(t @-> returning void)
   end
 
+  module Bignum = struct
+    let t = Ctypes.(ptr void)
+
+    let new_ = foreign "BN_new"
+      Ctypes.(void @-> returning t)
+
+    let free = foreign "BN_free"
+      Ctypes.(t @-> returning void)
+
+    let bin2bn = foreign "BN_bin2bn"
+      Ctypes.(ptr char @-> int @-> t @-> returning t)
+
+    let hex2bn = foreign "BN_hex2bn"
+      Ctypes.(ptr t @-> string @-> returning int)
+  end
+
+  module Dh = struct
+    type dh
+    ;;
+
+    let dh : dh Ctypes.structure Ctypes.typ = Ctypes.structure "DH";;
+
+    (*_ a bunch of fields we don't care about but we need for ctypes to not break *)
+    let _pad = Ctypes.field dh "pad" Ctypes.int;;
+    let _version = Ctypes.field dh "version" Ctypes.int;;
+    (*_ we actually need these two fields to be able to create [DH*] values *)
+    let p = Ctypes.field dh "p" Bignum.t;;
+    let g = Ctypes.field dh "g" Bignum.t;;
+    (*_ lots more fields that we don't care about *)
+
+    let () = Ctypes.seal dh;;
+
+    type t = dh Ctypes.structure Ctypes.ptr
+    ;;
+
+    let t : t Ctypes.typ = Ctypes.(ptr dh)
+
+    let new_ = foreign "DH_new" Ctypes.(void @-> returning t)
+
+    let free = foreign "DH_free" Ctypes.(t @-> returning void)
+
+    let generate_parameters = foreign "DH_generate_parameters"
+      Ctypes.(int @-> int @-> Foreign.(funptr_opt (int @-> int @-> ptr void @-> returning void)) @-> ptr void @-> returning t)
+
+
+  end
+
+  module Ec_key = struct
+    let t = Ctypes.(ptr void)
+    let new_by_curve_name = foreign "EC_KEY_new_by_curve_name"
+      Ctypes.(int @-> returning t)
+    let free = foreign "EC_KEY_free" Ctypes.(t @-> returning void)
+  end
+
+  module Rsa = struct
+    let t = Ctypes.(ptr void)
+    let generate_key = foreign "RSA_generate_key"
+      Ctypes.(int @-> int @-> Foreign.(funptr_opt (int @-> int @-> ptr void @-> returning void)) @-> ptr void @-> returning t)
+
+    let free = foreign "RSA_free" Ctypes.(t @-> returning void)
+  end
+
   module Ssl =
   struct
     let t = Ctypes.(ptr void)
@@ -306,6 +396,21 @@ struct
 
     let set_verify = foreign "SSL_set_verify"
       Ctypes.(t @-> int @-> ptr void @-> returning void)
+
+    let set_cipher_list = foreign "SSL_set_cipher_list"
+      Ctypes.(t @-> string @-> returning int)
+
+    let get_cipher_list = foreign "SSL_get_cipher_list"
+      Ctypes.(t @-> int @-> returning string_opt)
+
+    let set_tmp_dh_callback = foreign "SSL_set_tmp_dh_callback"
+      Ctypes.(t @-> Foreign.(funptr (t @-> bool @-> int @-> returning Dh.t)) @-> returning void)
+
+    let set_tmp_ecdh = foreign "SSL_set_tmp_ecdh"
+      Ctypes.(t @-> Ec_key.t @-> returning void)
+
+    let set_tmp_rsa_callback = foreign "SSL_set_tmp_rsa_callback"
+      Ctypes.(t @-> Foreign.(funptr (t @-> bool @-> int @-> returning Rsa.t)) @-> returning void)
 
     (* free with X509_free() (source: manpage of SSL_get_peer_certificate(3)) *)
     let get_peer_certificate = foreign "SSL_get_peer_certificate"

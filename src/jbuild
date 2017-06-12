@@ -23,6 +23,7 @@
             ffi_generated_types
             ffi_generated
             ffi
+            rfc3526
             ssl
             std))
   (c_names (ffi_generated_stubs))

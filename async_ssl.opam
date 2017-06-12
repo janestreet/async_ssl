@@ -19,6 +19,7 @@ depends: [
   "stdio"
   "conf-openssl"
   "ctypes"
+  "ctypes-foreign"
   "ocaml-migrate-parsetree" {>= "0.4"}
 ]
 available: [ ocaml-version >= "4.04.1" ]

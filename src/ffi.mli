@@ -133,6 +133,46 @@ module Ssl_session : sig
   val create_exn : unit -> t
 end
 
+module Dh : sig
+  type t
+
+  val create
+    :  prime:[`hex of string]
+    -> generator:[`hex of string]
+    -> t
+  val generate_parameters
+    :  prime_len:int
+    -> generator:int
+    -> ?progress:(int -> int -> unit)
+    -> unit
+    -> t
+end
+
+module Ec_key : sig
+  module Curve : sig
+    type t [@@deriving sexp]
+    val to_string : t -> string
+    val of_string : string -> t
+
+    val secp384r1 : t
+    val secp521r1 : t
+    val prime256v1 : t
+  end
+  type t
+  val new_by_curve_name : Curve.t -> t
+end
+
+module Rsa : sig
+  type t
+
+  val generate_key
+    :  key_length:int
+    -> exponent:int
+    -> ?progress:(int -> int -> unit)
+    -> unit
+    -> t
+end
+
 (* Represents an SSL connection. This follows the naming convention of libopenssl, but
    would perhaps better be named [Connection]. *)
 module Ssl : sig
@@ -202,6 +242,15 @@ module Ssl : sig
   val get1_session : t -> Ssl_session.t option
 
   val set_tlsext_host_name : t -> string -> unit Or_error.t
+
+(** Set the list of available ciphers for client or server connections.
+    This is really [SSL_set_cipher_list t (String.concat ~sep:":" ("-ALL" ::  ciphers))]. *)
+
+  val set_cipher_list_exn : t -> string list -> unit
+  val set_tmp_dh_callback : t -> f:(is_export:bool -> key_length:int -> Dh.t) -> unit
+  val set_tmp_ecdh : t -> Ec_key.t -> unit
+  val set_tmp_rsa_callback : t -> f:(is_export:bool -> key_length:int -> Rsa.t) -> unit
+  val get_cipher_list : t -> string list
 end
 
 (** Pops all errors off of the openssl error stack, returning them as a list of

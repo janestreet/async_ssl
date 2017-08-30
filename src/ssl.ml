@@ -6,6 +6,15 @@ module Version = Version
 module Opt = Opt
 module Verify_mode = Verify_mode
 
+let secure_ciphers =
+  [
+    (* from: cipherli.st *)
+    "EECDH+AESGCM"
+  ; "EDH+AESGCM"
+  ; "AES256+EECDH"
+  ; "AES256+EDH"
+  ]
+
 module Certificate = struct
   type t = Ffi.X509.t
 
@@ -58,8 +67,8 @@ module Connection = struct
     Ffi.Ec_key.new_by_curve_name curve
 
 
-  let create_exn ?verify_modes ?(allowed_ciphers=`Default) ctx version client_or_server ?(hostname) name
-                 ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
+  let create_exn ?verify_modes ?(allowed_ciphers=`Openssl_default) ctx version
+        client_or_server ?(hostname) name ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
     (* SSL is transferred in 16 kB packets.  Therefore, it makes sense for our buffers to
        be the same size. *)
     let ssl  = Ffi.Ssl.create_exn ctx in
@@ -75,7 +84,8 @@ module Connection = struct
        certificate verified correctly. *)
     Option.iter verify_modes ~f:(Ffi.Ssl.set_verify ssl);
     (match allowed_ciphers with
-     | `Default -> ()
+     | `Openssl_default      -> ()
+     | `Secure               -> Ffi.Ssl.set_cipher_list_exn ssl secure_ciphers
      | `Only allowed_ciphers -> Ffi.Ssl.set_cipher_list_exn ssl allowed_ciphers);
     Ffi.Ssl.set_tmp_dh_callback ssl ~f:(fun ~is_export:_ ~key_length ->
       Rfc3526.modp key_length);
@@ -112,8 +122,9 @@ module Connection = struct
         Ffi.Ssl.use_private_key_file connection.ssl ~key ~file_type)
   ;;
 
-  let create_client_exn ?hostname ?name:(nm="(anonymous)") ?crt_file ?key_file ?verify_modes
-        ?allowed_ciphers ctx version ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
+  let create_client_exn ?hostname ?name:(nm="(anonymous)") ?allowed_ciphers
+        ?crt_file ?key_file ?verify_modes ctx version
+        ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
     let connection =
       create_exn ?verify_modes ?allowed_ciphers ctx version `Client ?hostname nm
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net
@@ -123,8 +134,9 @@ module Connection = struct
     return connection
   ;;
 
-  let create_server_exn ?name:(nm="(anonymous)") ?verify_modes ?allowed_ciphers ctx version ~crt_file
-        ~key_file ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
+  let create_server_exn ?name:(nm="(anonymous)") ?verify_modes ?allowed_ciphers
+        ctx version ~crt_file ~key_file
+        ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
     let connection =
       create_exn ?verify_modes ?allowed_ciphers ctx version `Server nm
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net
@@ -454,8 +466,8 @@ let context_exn =
 ;;
 
 let client ?version:(version = Version.default) ?options:(options = Opt.default)
-      ?name ?hostname ?ca_file ?ca_path ?crt_file ?key_file ?verify_modes ?session
-      ?allowed_ciphers ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
+      ?name ?hostname ?allowed_ciphers ?ca_file ?ca_path ?crt_file ?key_file ?verify_modes
+      ?session ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
   Deferred.Or_error.try_with (fun () ->
     context_exn (name, version, ca_file, ca_path, options)
     >>= fun context ->
@@ -474,7 +486,7 @@ let client ?version:(version = Version.default) ?options:(options = Opt.default)
 ;;
 
 let server ?version:(version = Version.default) ?options:(options = Opt.default)
-      ?name ?ca_file ?ca_path ~crt_file ~key_file ?verify_modes ?allowed_ciphers
+      ?name ?allowed_ciphers ?ca_file ?ca_path ~crt_file ~key_file ?verify_modes
       ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net () =
   Deferred.Or_error.try_with (fun () ->
     context_exn (name, version, ca_file, ca_path, options)
@@ -567,6 +579,7 @@ let%test_module _ = (module struct
                the functionality, but if we want to be super clear we need 5
                such files in this library: ca crt, server key + crt, and client
                key + crt.*)
+            ~allowed_ciphers:`Secure
             ~ca_file:"do_not_use_in_production.crt"   (* CA certificate *)
             ~crt_file:"do_not_use_in_production.crt"  (* server certificate *)
             ~key_file:"do_not_use_in_production.key"  (* server key *)
@@ -581,6 +594,7 @@ let%test_module _ = (module struct
           client
             ~name:"client"
             (* Necessary to verify the self-signed server certificate. *)
+            ~allowed_ciphers:`Secure
             ~ca_file:"do_not_use_in_production.crt"   (* ca certificate *)
             ~crt_file:"do_not_use_in_production.crt"  (* client certificate *)
             ~key_file:"do_not_use_in_production.key"  (* client key *)
@@ -670,6 +684,7 @@ let%test_module _ = (module struct
         let server_conn =
           server
             ~name:"server"
+            ~allowed_ciphers:`Secure
             ~crt_file:"do_not_use_in_production.crt"
             ~key_file:"do_not_use_in_production.key"
             ~app_to_ssl:i
@@ -682,6 +697,7 @@ let%test_module _ = (module struct
         let client_conn =
           client
             ~name:"client"
+            ~allowed_ciphers:`Secure
             ~app_to_ssl:c
             ~ssl_to_app:d
             ~ssl_to_net:e

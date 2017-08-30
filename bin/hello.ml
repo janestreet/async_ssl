@@ -10,16 +10,18 @@ let main ~crt_file ~key_file ~allowed_ciphers ~port () =
        let pipe_ssl_r, pipe_w = Pipe.create () in
        Ssl.server
          ~options:[Ssl.Opt.No_sslv2;Ssl.Opt.No_sslv3]
+         ~allowed_ciphers
          ~crt_file
          ~key_file
-         ~allowed_ciphers
          ~net_to_ssl:(Reader.pipe tcp_r)
          ~ssl_to_net:(Writer.pipe tcp_w)
          ~ssl_to_app:pipe_ssl_w
          ~app_to_ssl:pipe_ssl_r
          ()
        >>= function
-       | Error err -> failwithf !"Error: %{Sexp}\n" (Error.sexp_of_t err) ()
+       | Error err ->
+         printf !"Error: %{Sexp}\n" (Error.sexp_of_t err);
+         Deferred.unit
        | Ok ssl ->
          Writer.of_pipe (Info.of_string "Hello over SSL") pipe_w
          >>= fun (w, `Closed_and_flushed_downstream closed_and_flushed) ->
@@ -49,7 +51,7 @@ let command =
       and key_file = flag "-key" (optional_with_default key_file file) ~doc:"KEY pem file"
       in
       let allowed_ciphers = match allowed_ciphers with
-        | None -> `Default
+        | None -> `Secure
         | Some allowed_ciphers -> `Only (String.split ~on:':' allowed_ciphers)
       in
       fun () -> main ~crt_file ~key_file ~allowed_ciphers ~port ()

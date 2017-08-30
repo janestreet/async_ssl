@@ -10,6 +10,8 @@ module Version : module type of Version
 module Opt : module type of Opt
 module Verify_mode : module type of Verify_mode
 
+val secure_ciphers : string list
+
 module Certificate : sig
   type t
 
@@ -119,15 +121,37 @@ val client
   -> ?options:(Opt.t list)
   -> ?name:string
   -> ?hostname:string
+  (** Use [allowed_ciphers] to control which ciphers should be used.  See CIPHERS(1), and
+      `openssl ciphers -v`.
+
+      You should specify [`Secure] for this parameter[1].  It is derived from the HTTP
+      server cipher lists at https://cipherli.st/, and is meant to be adjusted over time
+      to reflect current security practices.  The current list is available via
+      [secure_ciphers].
+
+      If you need to keep a old cipher enabled across an update of the [`Secure] cipher
+      list, you can do something like the following:
+
+      [`Only (Ssl.secure_ciphers @ ["OLD_CIPHER"])]
+
+      If unspecified, [allowed_ciphers] defaults to [`Openssl_default], which uses
+      OpenSSL's built-in defaults and is probably not what you want.
+
+      [`Only of string list] allows customization of the cipher list.
+
+      [1] [allowed_ciphers] is not a mandatory argument and [`Secure] is not the default
+      for backwards-compatibility reasons.  However, the current [client] and [server]
+      functions will be deprecated soon in favor of a better interface that will provide
+      secure defaults. *)
+  -> ?allowed_ciphers:[ `Secure
+                      | `Openssl_default
+                      | `Only of string list ]
   -> ?ca_file:string
   -> ?ca_path:string
   -> ?crt_file:string
   -> ?key_file:string
   -> ?verify_modes:Verify_mode.t list
   -> ?session:Session.t
-  (** Use [allowed_ciphers] to control which ciphers should be used.
-      See CIPHERS(1), and `openssl ciphers -v` *)
-  -> ?allowed_ciphers:[`Default | `Only of string list]
   -> app_to_ssl:(string Pipe.Reader.t)
   -> ssl_to_app:(string Pipe.Writer.t)
   -> net_to_ssl:(string Pipe.Reader.t)
@@ -139,14 +163,16 @@ val server
   :  ?version:Version.t
   -> ?options:(Opt.t list)
   -> ?name:string
+  (** Use [allowed_ciphers] to control which ciphers should be used.  See comment in
+      [client] above for more details. *)
+  -> ?allowed_ciphers:[ `Secure
+                      | `Openssl_default
+                      | `Only of string list ]
   -> ?ca_file:string
   -> ?ca_path:string
   -> crt_file:string
   -> key_file:string
   -> ?verify_modes:Verify_mode.t list
-(** Use [allowed_ciphers] to control which ciphers should be used.
-    See CIPHERS(1), and `openssl ciphers -v` *)
-  -> ?allowed_ciphers:[`Default | `Only of string list]
   -> app_to_ssl:(string Pipe.Reader.t)
   -> ssl_to_app:(string Pipe.Writer.t)
   -> net_to_ssl:(string Pipe.Reader.t)

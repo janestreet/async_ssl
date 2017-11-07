@@ -95,6 +95,13 @@ struct
       dummy
 #endif
 
+    let tls = helper "TLS_method"
+#ifdef JSC_TLS_method
+      implemented
+#else
+      dummy
+#endif
+
     let tlsv1 = helper "TLSv1_method"
 #ifdef JSC_TLSv1_method
       implemented
@@ -116,11 +123,13 @@ struct
       dummy
 #endif
 
-    let sslv23 = helper "SSLv23_method"
+    let sslv23 =
 #ifdef JSC_SSLv23_method
-      implemented
+      helper "SSLv23_method" implemented
+#elifdef JSC_TLS_method
+      tls
 #else
-      dummy
+      helper "SSLv23_method" dummy
 #endif
 
     (* SSLv2 isn't secure, so we don't use it.  If you really really really need it, use

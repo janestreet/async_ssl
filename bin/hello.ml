@@ -4,6 +4,7 @@ open Async_ssl
 
 let main ~crt_file ~key_file ~allowed_ciphers ~port () =
   Tcp.Server.create
+    ~on_handler_error:`Raise
     (Tcp.on_port port)
     (fun _address tcp_r tcp_w ->
        let _pipe_r, pipe_ssl_w = Pipe.create () in

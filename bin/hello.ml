@@ -44,7 +44,7 @@ let key_file = Filename.dirname Sys.executable_name ^/ "do_not_use_in_production
 
 let command =
   let open Command.Let_syntax in
-  Command.async' ~summary:"SSL test harness."
+  Command.async ~summary:"SSL test harness."
     [%map_open
       let port = flag "-port" (required int) ~doc:"PORT to listen on"
       and allowed_ciphers = flag "-ciphers" (optional string) ~doc:"CIPHERS ssl cipher spec"

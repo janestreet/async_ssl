@@ -2,8 +2,9 @@
 #include <openssl/ssl.h>
 #include <dlfcn.h>
 
-static char * const symbol[] = { "SSLv3_method",
-                                 "SSLv23_method",
+static char * const symbol[] = { "SSLv23_method",
+                                 "TLS_method",
+                                 "SSLv3_method",
                                  "TLSv1_method",
                                  "TLSv1_1_method",
                                  "TLSv1_2_method",

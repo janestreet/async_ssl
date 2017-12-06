@@ -88,7 +88,18 @@ struct
     let implemented name = foreign name ssl_method_t
     let helper name f = f name
 
-    let sslv3 = helper "SSLv3_method"
+    let tls =
+#ifdef JSC_TLS_method
+      helper "TLS_method" implemented
+#elifdef JSC_SSLv23_method
+      helper "SSLv23_method" implemented
+#else
+      helper "TLS_method" dummy
+#endif
+
+    let sslv23 = tls
+
+let sslv3 = helper "SSLv3_method"
 #ifdef JSC_SSLv3_method
       implemented
 #else
@@ -111,13 +122,6 @@ struct
 
     let tlsv1_2 = helper "TLSv1_2_method"
 #ifdef JSC_TLSv1_2_method
-      implemented
-#else
-      dummy
-#endif
-
-    let sslv23 = helper "SSLv23_method"
-#ifdef JSC_SSLv23_method
       implemented
 #else
       dummy

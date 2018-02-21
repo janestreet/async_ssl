@@ -1,4 +1,4 @@
-#import "config.h"
+[%%import "config.h"]
 
 module Types(F : Cstubs.Types.TYPE) =
 struct
@@ -88,44 +88,39 @@ struct
     let implemented name = foreign name ssl_method_t
     let helper name f = f name
 
-    let tls =
-#ifdef JSC_TLS_method
-      helper "TLS_method" implemented
-#elifdef JSC_SSLv23_method
-      helper "SSLv23_method" implemented
-#else
-      helper "TLS_method" dummy
-#endif
+    [%%ifdef JSC_TLS_method]
+    let tls = helper "TLS_method" implemented
+    [%%elif defined JSC_SSLv23_method]
+    let tls = helper "SSLv23_method" implemented
+    [%%else]
+    let tls = helper "TLS_method" dummy
+    [%%endif]
 
     let sslv23 = tls
 
-let sslv3 = helper "SSLv3_method"
-#ifdef JSC_SSLv3_method
-      implemented
-#else
-      dummy
-#endif
+    [%%if defined JSC_SSLv3_method]
+    let sslv3 = helper "SSLv3_method" implemented
+    [%%else]
+    let sslv3 = helper "SSLv3_method" dummy
+    [%%endif]
 
-    let tlsv1 = helper "TLSv1_method"
-#ifdef JSC_TLSv1_method
-      implemented
-#else
-      dummy
-#endif
+    [%%if defined JSC_TLSv1_method]
+    let tlsv1 = helper "TLSv1_method" implemented
+    [%%else]
+    let tlsv1 = helper "TLSv1_method" dummy
+    [%%endif]
 
-    let tlsv1_1 = helper "TLSv1_1_method"
-#ifdef JSC_TLSv1_1_method
-      implemented
-#else
-      dummy
-#endif
+    [%%if defined JSC_TLSv1_1_method]
+    let tlsv1_1 = helper "TLSv1_1_method" implemented
+    [%%else]
+    let tlsv1_1 = helper "TLSv1_1_method" dummy
+    [%%endif]
 
-    let tlsv1_2 = helper "TLSv1_2_method"
-#ifdef JSC_TLSv1_2_method
-      implemented
-#else
-      dummy
-#endif
+    [%%if defined JSC_TLSv1_2_method]
+    let tlsv1_2 = helper "TLSv1_2_method" implemented
+    [%%else]
+    let tlsv1_2 = helper "TLSv1_2_method" dummy
+    [%%endif]
 
     (* SSLv2 isn't secure, so we don't use it.  If you really really really need it, use
        SSLv23 which will at least try to upgrade the security whenever possible.

@@ -23,7 +23,7 @@
   (libraries (ctypes.stubs ctypes ctypes.foreign.threaded))
   (virtual_deps (conf-openssl))
   (preprocessor_deps (config.h))
-  (preprocess (pps (ppx_jane ppx_driver.runner)))))
+  (preprocess (pps (ppx_jane ppxlib.runner)))))
 
 
 (jbuild_version 1)

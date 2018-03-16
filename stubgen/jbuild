@@ -4,7 +4,7 @@
   (libraries (async_ssl_bindings
               ctypes.stubs
               ctypes))
-  (preprocess (pps (ppx_jane ppx_driver.runner)))))
+  (preprocess (pps (ppx_jane ppxlib.runner)))))
 
 (rule
  ((targets (ffi_ml_types_stubgen.c))

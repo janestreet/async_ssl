@@ -2,7 +2,6 @@
  ((names
    (hello
     ))
-  (flags (:standard -safe-string))
   (libraries
    (async
     core

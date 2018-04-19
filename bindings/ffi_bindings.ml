@@ -274,6 +274,12 @@ module Engine = struct
 
     let free = foreign "X509_free"
       Ctypes.(t @-> returning void)
+
+    let subject_alt_names = foreign "async_ssl__subject_alt_names"
+      Ctypes.(t @-> returning (ptr (ptr char)))
+
+    let free_subject_alt_names = foreign "async_ssl__free_subject_alt_names"
+      Ctypes.(ptr (ptr char) @-> returning void)
   end
 
   module Ssl_session = struct

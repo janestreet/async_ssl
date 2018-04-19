@@ -22,6 +22,7 @@ module Certificate : sig
      You probably only care about CN.
   *)
   val subject : t -> (string * string) list
+  val subject_alt_names : t -> string list
 end
 
 module Session : sig

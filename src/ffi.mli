@@ -125,6 +125,7 @@ module X509 : sig
   type t
 
   val get_subject_name : t -> X509_name.t
+  val get_subject_alt_names : t -> string list
 end
 
 module Ssl_session : sig

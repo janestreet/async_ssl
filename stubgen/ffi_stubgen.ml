@@ -5,6 +5,9 @@ let prefix = "async_ssl_stub"
 let prologue = "
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/conf.h>
+
+#include \"../bindings/openssl_helpers.h\"
 "
 
 let () =

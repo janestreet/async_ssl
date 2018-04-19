@@ -34,6 +34,8 @@ module Certificate = struct
         |> ASN1_string.data
       in
       sn, data)
+
+  let subject_alt_names = Ffi.X509.get_subject_alt_names
 end
 
 module Connection = struct

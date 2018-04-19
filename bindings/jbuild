@@ -19,6 +19,9 @@
 (library
  ((name async_ssl_bindings)
   (public_name async_ssl.bindings)
+  (c_names (openssl_helpers))
+  (c_flags ((:standard \ -Werror -pedantic -Wall -Wunused)))
+  (c_library_flags (:standard (:include openssl-cclib.sexp)))
   (libraries (ctypes.stubs ctypes ctypes.foreign.threaded))
   (virtual_deps (conf-openssl))
   (preprocessor_deps (config.h))

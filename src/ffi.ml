@@ -247,6 +247,27 @@ module X509 = struct
     let name = Bindings.X509.get_subject_name t in
     if name = Ctypes.null then failwith "Certificate contains no subject name.";
     name
+
+  let get_subject_alt_names t =
+    let open Ctypes in
+    let results_p_p = Bindings.X509.subject_alt_names t in
+    if is_null results_p_p
+    then failwith "Failed to allocate memory in subject_alt_names()"
+    else begin
+      protect ~f:(fun () ->
+        let rec loop acc p =
+          let san = !@ p in
+          if is_null san
+          then List.rev acc
+          else
+            match coerce (ptr char) string_opt san with
+            | None   -> failwith "Coercion of subjectAltName string failed"
+            | Some s -> loop (s :: acc) (p +@ 1)
+        in
+        loop [] results_p_p)
+        ~finally:(fun () -> Bindings.X509.free_subject_alt_names results_p_p)
+    end
+  ;;
 end
 
 module Ssl_session = struct
@@ -272,9 +293,7 @@ module Bignum = struct
     let p = Ctypes.(!@) p_ref in
     if p = Ctypes.null
     then failwith "Unable to allocate/init Bignum."
-    else begin
-      p
-    end
+    else p
 end
 
 module Dh = struct

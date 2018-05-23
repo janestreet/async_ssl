@@ -179,6 +179,18 @@ module Ssl_ctx = struct
         | _ -> Or_error.error "CA load error" (get_error_stack ()) [%sexp_of: string list]
       end
   ;;
+
+  let set_default_verify_paths =
+    fun ctx ->
+      match
+        Bindings.Ssl_ctx.set_default_verify_paths ctx
+      with
+      | 1 -> ()
+      | x ->
+        failwiths "Could not set default verify paths."
+          (`Return_value x, `Errors (get_error_stack()))
+          [%sexp_of: [`Return_value of int] * [`Errors of string list]]
+  ;;
 end
 
 module Bio = struct

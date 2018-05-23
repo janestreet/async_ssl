@@ -55,12 +55,20 @@ module Ssl_ctx : sig
       }]
 
       If both [ca_file] and [ca_path] are specified, the certificates in [ca_file] will be
-      searched before the certificates in [ca_path]. *)
+      searched before the certificates in [ca_path].
+
+      If this function is not used, [set_default_verify_paths] should be called to use
+      OpenSSL's compiled-in defaults. *)
   val load_verify_locations
     :  ?ca_file:string
     -> ?ca_path:string
     -> t
     -> unit Or_error.t Deferred.t
+
+  (** Tell OpenSSL to use its compiled-in defaults for locating CA certificates for
+      verification purposes.  This should be called if [load_verify_locations] is not
+      used. *)
+  val set_default_verify_paths : t -> unit
 
   (** Set context within which session can be reused, e.g. the name of the application
       and/or the hostname and/or service name, etc. Server side only.

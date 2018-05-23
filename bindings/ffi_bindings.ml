@@ -179,6 +179,9 @@ module Engine = struct
     let load_verify_locations = foreign "SSL_CTX_load_verify_locations"
       Ctypes.(t @-> string_opt @-> string_opt @-> returning int)
 
+    let set_default_verify_paths = foreign "SSL_CTX_set_default_verify_paths"
+      Ctypes.(t @-> returning int)
+
     let set_session_id_context = foreign "SSL_CTX_set_session_id_context"
       Ctypes.(t @-> ptr char @-> uint @-> returning int)
 

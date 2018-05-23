@@ -125,25 +125,20 @@ val client
   (** Use [allowed_ciphers] to control which ciphers should be used.  See CIPHERS(1), and
       `openssl ciphers -v`.
 
-      You should specify [`Secure] for this parameter[1].  It is derived from the HTTP
-      server cipher lists at https://cipherli.st/, and is meant to be adjusted over time
+      If unspecified, [allowed_ciphers] defaults to [`Secure], which is a list derived
+      from guidance posted on https://cipherli.st/ and is meant to be adjusted over time
       to reflect current security practices.  The current list is available via
       [secure_ciphers].
 
       If you need to keep a old cipher enabled across an update of the [`Secure] cipher
-      list, you can do something like the following:
+      list or a default value change[1], you can do something like the following:
 
       [`Only (Ssl.secure_ciphers @ ["OLD_CIPHER"])]
 
-      If unspecified, [allowed_ciphers] defaults to [`Openssl_default], which uses
-      OpenSSL's built-in defaults and is probably not what you want.
-
-      [`Only of string list] allows customization of the cipher list.
-
-      [1] [allowed_ciphers] is not a mandatory argument and [`Secure] is not the default
-      for backwards-compatibility reasons.  However, the current [client] and [server]
-      functions will be deprecated soon in favor of a better interface that will provide
-      secure defaults. *)
+      [1] Historically, [allowed_ciphers] was not a mandatory argument and [`Secure] was
+      not the default for backwards-compatibility reasons. However, in early 2018
+      [`Secure] became the default to at least force users to think about this if they
+      want something less secure. *)
   -> ?allowed_ciphers:[ `Secure
                       | `Openssl_default
                       | `Only of string list ]
@@ -151,6 +146,17 @@ val client
   -> ?ca_path:string
   -> ?crt_file:string
   -> ?key_file:string
+  (** Use [verify_modes] to control what verification SSL does as part of the handshake.
+      To see the full description of the available options see the notes on the manpage
+      for SSL_CTX_set_verify(3) on your system.
+
+      Historically, this was an optional argument with no default. However, the fact that
+      SSL does *no* verification in that case makes it extremely easy to gain a false
+      sense of security regarding the level of verification that is being done, so the
+      default is now [Verify_peer].
+
+      To restore the old, insecure, behavior (or to do the verification yourself), set
+      this to [Verify_none]. *)
   -> ?verify_modes:Verify_mode.t list
   -> ?session:Session.t
   -> app_to_ssl:(string Pipe.Reader.t)
@@ -164,7 +170,7 @@ val server
   :  ?version:Version.t
   -> ?options:(Opt.t list)
   -> ?name:string
-  (** Use [allowed_ciphers] to control which ciphers should be used.  See comment in
+  (** Use [allowed_ciphers] to control which ciphers should be used. See comment in
       [client] above for more details. *)
   -> ?allowed_ciphers:[ `Secure
                       | `Openssl_default
@@ -173,6 +179,9 @@ val server
   -> ?ca_path:string
   -> crt_file:string
   -> key_file:string
+  (** Use [verify_modes] to control what verification SSL does as part of the handshake.
+      The default for servers is [Verify_none], meaning no client certificate request is
+      sent to the client. *)
   -> ?verify_modes:Verify_mode.t list
   -> app_to_ssl:(string Pipe.Reader.t)
   -> ssl_to_app:(string Pipe.Writer.t)

@@ -69,7 +69,7 @@ module Connection = struct
     Ffi.Ec_key.new_by_curve_name curve
 
 
-  let create_exn ?verify_modes ?(allowed_ciphers=`Openssl_default) ctx version
+  let create_exn ?verify_modes ?(allowed_ciphers=`Secure) ctx version
         client_or_server ?(hostname) name ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
     (* SSL is transferred in 16 kB packets.  Therefore, it makes sense for our buffers to
        be the same size. *)
@@ -81,9 +81,9 @@ module Connection = struct
     let wbio = Ffi.Bio.create () in
     let default_buffer_size = 16 * 1024 in
     let bstr = Bigstring.create default_buffer_size in
-    (* The default is VERIFY_NONE which defers the decision to abort the
-       connection to the caller. The caller must be careful to check that the
-       certificate verified correctly. *)
+    (* The default used to be [Verify_none] which defers the decision to abort the
+       connection to the caller. The caller must be careful to check that the certificate
+       verified correctly. To prevent mistakes, we've changed it to [Verify_peer]. *)
     Option.iter verify_modes ~f:(Ffi.Ssl.set_verify ssl);
     (match allowed_ciphers with
      | `Openssl_default      -> ()
@@ -125,10 +125,10 @@ module Connection = struct
   ;;
 
   let create_client_exn ?hostname ?name:(nm="(anonymous)") ?allowed_ciphers
-        ?crt_file ?key_file ?verify_modes ctx version
+        ?crt_file ?key_file ?(verify_modes=[Verify_mode.Verify_peer]) ctx version
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net =
     let connection =
-      create_exn ?verify_modes ?allowed_ciphers ctx version `Client ?hostname nm
+      create_exn ~verify_modes ?allowed_ciphers ctx version `Client ?hostname nm
         ~app_to_ssl ~ssl_to_app ~net_to_ssl ~ssl_to_net
     in
     use_crt_and_key connection ?crt_file ?key_file
@@ -455,8 +455,8 @@ let context_exn =
   Memo.general (fun (name, version, ca_file, ca_path, options) ->
     let ctx = Ffi.Ssl_ctx.create_exn version in
     begin match ca_file, ca_path with
-      | None, None -> return (Ok ())
-      | _, _       -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
+    | None, None -> return (Ok (Ffi.Ssl_ctx.set_default_verify_paths ctx))
+    | _, _       -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
     end
     >>| function
     | Error e -> failwiths "Could not initialize ssl context" e [%sexp_of: Error.t]

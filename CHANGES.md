@@ -1,3 +1,8 @@
+## git version
+
+- Added function `Ffi.set_default_verify_paths`, to make OpenSSL use its default for
+  CA certificates locations
+
 ## 113.33.00
 
 - Make sure to close the `Pipe.Writer.t` that goes back to the application, otherwise the

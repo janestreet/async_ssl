@@ -27,6 +27,7 @@ module Server = struct
          | Ok ssl ->
            Writer.of_pipe (Info.of_string "Hello Server over SSL") pipe_w
            >>= fun (w, `Closed_and_flushed_downstream closed_and_flushed) ->
+           printf "Client has connected, writing 1 line of data...\n";
            Writer.write w "Hello!\n";
            Writer.close w
            >>= fun () ->
@@ -92,7 +93,6 @@ module Client = struct
     let pipe_ssl_r, _pipe_w = Pipe.create () in
     Ssl.client
       ~options:[Ssl.Opt.No_sslv2;Ssl.Opt.No_sslv3]
-      ~ca_file:"/etc/ssl/certs/ca-bundle.crt"
       ~allowed_ciphers
       ~verify_modes:[Ssl.Verify_mode.Verify_peer]
       ~net_to_ssl:(Reader.pipe tcp_r)
@@ -109,6 +109,7 @@ module Client = struct
       >>= fun r ->
       maybe_print_sans ~print_sans ~ssl
       >>= fun () ->
+      printf "Connected to server, reading one line of data...\n";
       Reader.read_line r
       >>= fun result ->
       begin match result with

@@ -51,9 +51,9 @@ module Server = struct
         let port = flag "-port" (required int) ~doc:"PORT to listen on"
         and allowed_ciphers = flag "-ciphers" (optional string)
                                 ~doc:"CIPHERS ssl cipher spec"
-        and crt_file = flag "-crt" (optional_with_default crt_file file)
+        and crt_file = flag "-crt" (optional_with_default crt_file Filename.arg_type)
                          ~doc:"CERTIFICATE pem file with certificate"
-        and key_file = flag "-key" (optional_with_default key_file file)
+        and key_file = flag "-key" (optional_with_default key_file Filename.arg_type)
                          ~doc:"KEY pem file with key"
         in
         let allowed_ciphers = match allowed_ciphers with

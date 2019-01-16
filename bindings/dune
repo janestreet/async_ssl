@@ -1,0 +1,19 @@
+(rule
+ (targets openssl-ccopt.sexp openssl-cclib.sexp openssl-ccopt openssl-cclib)
+ (deps (:first_dep config/discover.exe)) (action (run %{first_dep})))
+
+(rule (targets discover.exe) (deps discover.c openssl-ccopt openssl-cclib)
+ (action
+  (bash
+   "%{cc} $(< openssl-ccopt) discover.c $(< openssl-cclib) -ldl -o discover.exe")))
+
+(rule (targets config.h) (deps (:first_dep discover.exe))
+ (action (bash "./%{first_dep} > config.h")))
+
+(library (name async_ssl_bindings) (public_name async_ssl.bindings)
+ (c_names openssl_helpers)
+ (c_flags (:standard \ -Werror -pedantic -Wall -Wunused))
+ (c_library_flags :standard (:include openssl-cclib.sexp))
+ (libraries ctypes.stubs ctypes ctypes.foreign.threaded)
+ (virtual_deps conf-openssl) (preprocessor_deps config.h)
+ (preprocess (pps ppx_jane)))

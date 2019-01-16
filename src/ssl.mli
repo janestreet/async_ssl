@@ -3,9 +3,9 @@
     This module allows you to create an SSL client and server, with encrypted
     communication between both. *)
 
+
 open! Core
 open! Async
-
 module Version : module type of Version
 module Opt : module type of Opt
 module Verify_mode : module type of Verify_mode
@@ -21,6 +21,7 @@ module Certificate : sig
 
      You probably only care about CN.
   *)
+
   val subject : t -> (string * string) list
   val subject_alt_names : t -> string list
 end
@@ -41,20 +42,24 @@ module Connection : sig
 
   (* Becomes determined when the ssl session has terminated and cleaned
      up. Includes the error in case of abnormal termination. *)
+
   val closed : t -> unit Or_error.t Deferred.t
 
   (* Initiates connection shutdown. *)
+
   val close : t -> unit
 
   (* Negotiated version. Not necessarily the same as what we passed as argument
      to the [client] or [server] functions. *)
+
   val version : t -> Version.t
 
   (* None if the other side sent us no certificate, Error if validation failed. *)
-  val peer_certificate : t -> Certificate.t Or_error.t option
 
+  val peer_certificate : t -> Certificate.t Or_error.t option
   val session_reused : t -> bool
 end
+
 
 (** Creates either an SSL client or server.
 
@@ -119,7 +124,7 @@ end
 
 val client
   :  ?version:Version.t
-  -> ?options:(Opt.t list)
+  -> ?options:Opt.t list
   -> ?name:string
   -> ?hostname:string
   (** Use [allowed_ciphers] to control which ciphers should be used.  See CIPHERS(1), and
@@ -139,9 +144,7 @@ val client
       not the default for backwards-compatibility reasons. However, in early 2018
       [`Secure] became the default to at least force users to think about this if they
       want something less secure. *)
-  -> ?allowed_ciphers:[ `Secure
-                      | `Openssl_default
-                      | `Only of string list ]
+  -> ?allowed_ciphers:[`Secure | `Openssl_default | `Only of string list]
   -> ?ca_file:string
   -> ?ca_path:string
   -> ?crt_file:string
@@ -159,22 +162,20 @@ val client
       this to [Verify_none]. *)
   -> ?verify_modes:Verify_mode.t list
   -> ?session:Session.t
-  -> app_to_ssl:(string Pipe.Reader.t)
-  -> ssl_to_app:(string Pipe.Writer.t)
-  -> net_to_ssl:(string Pipe.Reader.t)
-  -> ssl_to_net:(string Pipe.Writer.t)
+  -> app_to_ssl:string Pipe.Reader.t
+  -> ssl_to_app:string Pipe.Writer.t
+  -> net_to_ssl:string Pipe.Reader.t
+  -> ssl_to_net:string Pipe.Writer.t
   -> unit
   -> Connection.t Deferred.Or_error.t
 
 val server
   :  ?version:Version.t
-  -> ?options:(Opt.t list)
+  -> ?options:Opt.t list
   -> ?name:string
   (** Use [allowed_ciphers] to control which ciphers should be used. See comment in
       [client] above for more details. *)
-  -> ?allowed_ciphers:[ `Secure
-                      | `Openssl_default
-                      | `Only of string list ]
+  -> ?allowed_ciphers:[`Secure | `Openssl_default | `Only of string list]
   -> ?ca_file:string
   -> ?ca_path:string
   -> crt_file:string
@@ -183,9 +184,9 @@ val server
       The default for servers is [Verify_none], meaning no client certificate request is
       sent to the client. *)
   -> ?verify_modes:Verify_mode.t list
-  -> app_to_ssl:(string Pipe.Reader.t)
-  -> ssl_to_app:(string Pipe.Writer.t)
-  -> net_to_ssl:(string Pipe.Reader.t)
-  -> ssl_to_net:(string Pipe.Writer.t)
+  -> app_to_ssl:string Pipe.Reader.t
+  -> ssl_to_app:string Pipe.Writer.t
+  -> net_to_ssl:string Pipe.Reader.t
+  -> ssl_to_net:string Pipe.Writer.t
   -> unit
   -> Connection.t Deferred.Or_error.t

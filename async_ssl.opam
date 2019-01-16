@@ -1,14 +1,16 @@
-opam-version: "1.2"
+opam-version: "2.0"
 maintainer: "opensource@janestreet.com"
 authors: ["Jane Street Group, LLC <opensource@janestreet.com>"]
 homepage: "https://github.com/janestreet/async_ssl"
 bug-reports: "https://github.com/janestreet/async_ssl/issues"
 dev-repo: "git+https://github.com/janestreet/async_ssl.git"
+doc: "https://ocaml.janestreet.com/ocaml-core/latest/doc/async_ssl/index.html"
 license: "MIT"
 build: [
-  ["jbuilder" "build" "-p" name "-j" jobs]
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
+  "ocaml" {>= "4.07.0"}
   "async"
   "base"
   "core"
@@ -17,15 +19,10 @@ depends: [
   "conf-openssl"
   "ctypes"
   "ctypes-foreign"
-  "dune"
-  "jbuilder"                {build & >= "1.0+beta18.1"}
-  "ocaml-migrate-parsetree" {>= "1.0"}
-  "ppxlib"                  {>= "0.1.0"}
+  "dune"           {build & >= "1.5.1"}
 ]
-available: [ ocaml-version >= "4.06.1" ]
-descr: "
-An Async-pipe-based interface with OpenSSL.
-
+synopsis: "An Async-pipe-based interface with OpenSSL"
+description: "
 This library allows you to create an SSL client and server, with
 encrypted communication between both.
 "

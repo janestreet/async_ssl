@@ -21,8 +21,10 @@ open! Core
     try using the unsupported version.
 *)
 type t =
-  | Sslv23  (* Deprecated in favor of [Tls] below, which behaves identically *)
-  | Tls     (* Negotiate highest available version *)
+  | Sslv23
+  (* Deprecated in favor of [Tls] below, which behaves identically *)
+  | Tls
+  (* Negotiate highest available version *)
   | Sslv3
   | Tlsv1
   | Tlsv1_1

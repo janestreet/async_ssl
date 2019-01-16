@@ -1,0 +1,2 @@
+(executables (names hello) (libraries async core async_shell async_ssl)
+ (preprocess (pps ppx_jane)))

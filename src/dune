@@ -1,0 +1,21 @@
+(rule (targets ffi_generated.ml)
+ (deps (:first_dep ../stubgen/ffi_stubgen.exe))
+ (action (bash "%{first_dep} -ml > ffi_generated.ml")))
+
+(rule (targets ffi_generated_stubs.c)
+ (deps (:first_dep ../stubgen/ffi_stubgen.exe))
+ (action (bash "%{first_dep} -c > ffi_generated_stubs.c")))
+
+(rule (targets ffi_generated_types.ml)
+ (deps (:first_dep ../stubgen/ffi_ml_types_stubgen.exe))
+ (action (bash "%{first_dep} > ffi_generated_types.ml")))
+
+(library (name async_ssl) (public_name async_ssl)
+ (modules import version opt verify_mode ffi_generated_types ffi_generated
+  ffi rfc3526 ssl std)
+ (c_names ffi_generated_stubs) (flags :standard -w -9-27-32-34)
+ (c_flags (:standard \ -Werror -pedantic -Wall -Wunused) -w
+  (:include ../bindings/openssl-ccopt.sexp))
+ (c_library_flags :standard (:include ../bindings/openssl-cclib.sexp))
+ (libraries async core async_ssl_bindings ctypes.stubs ctypes)
+ (preprocess (pps ppx_jane)))

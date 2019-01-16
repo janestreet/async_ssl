@@ -1,0 +1,14 @@
+(executables (names ffi_stubgen ffi_types_stubgen)
+ (libraries async_ssl_bindings ctypes.stubs ctypes)
+ (preprocess (pps ppx_jane)))
+
+(rule (targets ffi_ml_types_stubgen.c)
+ (deps (:first_dep ./ffi_types_stubgen.exe))
+ (action (bash "./%{first_dep} > %{targets}")))
+
+(rule (targets ffi_ml_types_stubgen.exe)
+ (deps (:first_dep ./ffi_ml_types_stubgen.c) ../bindings/openssl-ccopt
+  ../bindings/openssl-cclib)
+ (action
+  (bash
+   "%{cc} %{first_dep} $(< ../bindings/openssl-ccopt) $(< ../bindings/openssl-cclib) -I `dirname %{lib:ctypes:ctypes_cstubs_internals.h}` -I %{ocaml_where} -o %{targets}")))

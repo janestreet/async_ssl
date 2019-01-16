@@ -8,6 +8,7 @@
     by calling any of these functions from multiple threads at the same time.
 *)
 open! Core
+
 open! Async
 open Ctypes
 open! Import
@@ -50,8 +51,8 @@ module Ssl_ctx : sig
       as [ca_path]:
 
       [{
-        cd /some/where/certs
-        c_rehash .
+      cd /some/where/certs
+      c_rehash .
       }]
 
       If both [ca_file] and [ca_path] are specified, the certificates in [ca_file] will be
@@ -90,7 +91,7 @@ module Bio : sig
       positive) or that no data was successfully read if the result is 0 or -1.  If the
       return value is -2 then the operation is not implemented in the specific BIO
       type. *)
-  val read : t -> buf:(char ptr) -> len:int -> int
+  val read : t -> buf:char ptr -> len:int -> int
 
   (** Write some bytes to a BIO.
 
@@ -125,7 +126,6 @@ module X509_name : sig
   type t
 
   val entry_count : t -> int
-
   val get_entry : t -> int -> X509_name_entry.t
 end
 
@@ -145,10 +145,8 @@ end
 module Dh : sig
   type t
 
-  val create
-    :  prime:[`hex of string]
-    -> generator:[`hex of string]
-    -> t
+  val create : prime:[`hex of string] -> generator:[`hex of string] -> t
+
   val generate_parameters
     :  prime_len:int
     -> generator:int
@@ -160,14 +158,16 @@ end
 module Ec_key : sig
   module Curve : sig
     type t [@@deriving sexp]
+
     val to_string : t -> string
     val of_string : string -> t
-
     val secp384r1 : t
     val secp521r1 : t
     val prime256v1 : t
   end
+
   type t
+
   val new_by_curve_name : Curve.t -> t
 end
 
@@ -185,7 +185,6 @@ end
 (* Represents an SSL connection. This follows the naming convention of libopenssl, but
    would perhaps better be named [Connection]. *)
 module Ssl : sig
-
   type t [@@deriving sexp_of]
 
   (** Creates a new SSL connection, with a memory-backed BIO. *)
@@ -196,16 +195,16 @@ module Ssl : sig
 
   (** Prepare the ssl connection for an initial handshake - either as a server ([`Accept])
       or as a client ([`Connect]). *)
-  val set_initial_state : t -> [ `Connect | `Accept ] -> unit
+  val set_initial_state : t -> [`Connect | `Accept] -> unit
 
   val connect : t -> (unit, Ssl_error.t) Result.t
-  val accept  : t -> (unit, Ssl_error.t) Result.t
+  val accept : t -> (unit, Ssl_error.t) Result.t
 
   (** Set the binary IO buffers associated with an SSL connection. *)
   val set_bio : t -> input:Bio.t -> output:Bio.t -> unit
 
   (** Read from the SSL application side. *)
-  val read : t -> buf:(char ptr) -> len:int -> (int, Ssl_error.t) Result.t
+  val read : t -> buf:char ptr -> len:int -> (int, Ssl_error.t) Result.t
 
   (** Write to the SSL application side. *)
   val write : t -> buf:string -> len:int -> (int, Ssl_error.t) Result.t
@@ -217,7 +216,7 @@ module Ssl : sig
   val use_certificate_file
     :  t
     -> crt:string
-    -> file_type:[ `PEM | `ASN1 ]
+    -> file_type:[`PEM | `ASN1]
     -> (unit, string list) Result.t Deferred.t
 
   (** For servers, use a private key [key] for securing communications.
@@ -230,30 +229,24 @@ module Ssl : sig
   val use_private_key_file
     :  t
     -> key:string
-    -> file_type:[ `PEM | `ASN1 ]
+    -> file_type:[`PEM | `ASN1]
     -> (unit, string list) Result.t Deferred.t
 
   val check_private_key : t -> unit Or_error.t
-
   val set_verify : t -> Verify_mode.t list -> unit
-
   val get_peer_certificate : t -> X509.t option
 
   (* Returns Ok () if there is no peer certificate. *)
+
   val get_verify_result : t -> unit Or_error.t
-
   val get_version : t -> Version.t
-
   val session_reused : t -> bool
-
   val set_session : t -> Ssl_session.t -> unit Or_error.t
-
   val get1_session : t -> Ssl_session.t option
-
   val set_tlsext_host_name : t -> string -> unit Or_error.t
 
-(** Set the list of available ciphers for client or server connections.
-    This is really [SSL_set_cipher_list t (String.concat ~sep:":" ("-ALL" ::  ciphers))]. *)
+  (** Set the list of available ciphers for client or server connections.
+      This is really [SSL_set_cipher_list t (String.concat ~sep:":" ("-ALL" ::  ciphers))]. *)
 
   val set_cipher_list_exn : t -> string list -> unit
   val set_tmp_dh_callback : t -> f:(is_export:bool -> key_length:int -> Dh.t) -> unit

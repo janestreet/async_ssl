@@ -89,7 +89,15 @@ module Client = struct
     else Deferred.unit
   ;;
 
-  let main ~allowed_ciphers ~print_sans ~host ~port () =
+  let maybe_print_peer_cert_chain ~print_chain ~ssl =
+    if print_chain
+    then (
+      match Ssl.Connection.pem_peer_certificate_chain ssl with
+      | Some chain -> printf "Certificate chain:\n%s\n" chain
+      | None -> ())
+  ;;
+
+  let main ~allowed_ciphers ~print_sans ~print_chain ~host ~port () =
     let hp = Host_and_port.create ~host ~port in
     let wtc = Tcp.Where_to_connect.of_host_and_port hp in
     let%bind _socket, tcp_r, tcp_w = Tcp.connect wtc in
@@ -112,6 +120,7 @@ module Client = struct
     | Ok ssl ->
       let%bind r = Reader.of_pipe (Info.of_string "Hello Client over SSL") pipe_r in
       let%bind () = maybe_print_sans ~print_sans ~ssl in
+      maybe_print_peer_cert_chain ~print_chain ~ssl;
       printf "Connected to server, reading one line of data...\n";
       let%bind result = Reader.read_line r in
       (match result with
@@ -134,13 +143,15 @@ module Client = struct
           flag "-ciphers" (optional string) ~doc:"CIPHERS ssl cipher spec"
         and print_sans =
           flag "-print-sans" no_arg ~doc:"Print subjectAltNames of server certificate"
+        and print_chain =
+          flag "-print-chain" no_arg ~doc:"Print peer certificate chain in PEM format"
         in
         let allowed_ciphers =
           match allowed_ciphers with
           | None -> `Secure
           | Some allowed_ciphers -> `Only (String.split ~on:':' allowed_ciphers)
         in
-        fun () -> main ~allowed_ciphers ~print_sans ~host ~port ()]
+        fun () -> main ~allowed_ciphers ~print_sans ~print_chain ~host ~port ()]
   ;;
 end
 

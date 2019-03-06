@@ -1,8 +1,6 @@
 open Core
 open Async
 open Import
-module Types = Async_ssl_bindings.Ffi_bindings.Types (Ffi_generated_types)
-module Bindings = Async_ssl_bindings.Ffi_bindings.Bindings (Ffi_generated)
 module Ssl_method = Bindings.Ssl_method
 
 module Ssl_error = struct
@@ -78,35 +76,6 @@ let get_error_stack =
   fun () ->
     iter_while_rev ~iter:Bindings.err_get_error ~cond:(fun x -> x <> Unsigned.ULong.zero)
     |> List.rev_map ~f:err_error_string
-;;
-
-(* In reality, this function returns an int... that's always 1. That's silly. *)
-
-(* OpenSSL_add_all_algorithms is a macro, so we have to replicate it manually. :( *)
-let add_all_algorithms () =
-  Bindings.add_all_ciphers ();
-  Bindings.add_all_digests ()
-;;
-
-(* openssl initialization method, run during module initialization. Hopefully
-   before anything uses OpenSSL. *)
-let () =
-  (* Static initialization *)
-  Bindings.ssl_load_error_strings ();
-  Bindings.err_load_crypto_strings ();
-  (* Use /etc/ssl/openssl.conf or similar *)
-  Bindings.openssl_config None;
-  (* Make hardware accelaration available *)
-  Bindings.Engine.load_builtin_engines ();
-  (* But unload RAND because RDRAND is suspected to have been compromised *)
-  Bindings.Engine.unregister_RAND ();
-  (* Finish engine registration *)
-  Bindings.Engine.register_all_complete ();
-  (* SSL_library_init() initializes the SSL algorithms.
-     It always returns "1", so it is safe to discard the return value *)
-  ignore (Bindings.init () : Unsigned.ulong);
-  (* Load any other algorithms, just in case *)
-  add_all_algorithms ()
 ;;
 
 module Ssl_ctx = struct
@@ -628,5 +597,19 @@ module Ssl = struct
       | None -> List.rev acc
     in
     loop 0 []
+  ;;
+
+  let get_peer_certificate_chain t =
+    let open Ctypes in
+    let results_p = Bindings.Ssl.pem_peer_certificate_chain t in
+    if is_null results_p
+    then None
+    else
+      protect
+        ~f:(fun () ->
+          match coerce (ptr char) string_opt results_p with
+          | None -> failwith "Coercion of certificate chain failed"
+          | Some s -> Some s)
+        ~finally:(fun () -> Bindings.Ssl.free_pem_peer_certificate_chain results_p)
   ;;
 end

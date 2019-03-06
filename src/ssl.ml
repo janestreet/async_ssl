@@ -5,14 +5,23 @@ module Version = Version
 module Opt = Opt
 module Verify_mode = Verify_mode
 
+module type Ffi = module type of Ffi__library_must_be_initialized
+
+let ffi =
+  lazy
+    (Initialize.initialize ();
+     (module Ffi__library_must_be_initialized : Ffi))
+;;
+
 let secure_ciphers =
   [ (* from: cipherli.st *) "EECDH+AESGCM"; "EDH+AESGCM"; "AES256+EECDH"; "AES256+EDH" ]
 ;;
 
 module Certificate = struct
-  type t = Ffi.X509.t
+  type t = Ffi__library_must_be_initialized.X509.t
 
   let subject t =
+    let (module Ffi) = force ffi in
     let open Ffi in
     let subject = X509.get_subject_name t in
     let count = X509_name.entry_count subject in
@@ -25,21 +34,24 @@ module Certificate = struct
       sn, data)
   ;;
 
-  let subject_alt_names = Ffi.X509.get_subject_alt_names
+  let subject_alt_names t =
+    let (module Ffi) = force ffi in
+    Ffi.X509.get_subject_alt_names t
+  ;;
 end
 
 module Connection = struct
   type t =
-    { ssl : Ffi.Ssl.t
-    ; ctx : Ffi.Ssl_ctx.t
+    { ssl : Ffi__library_must_be_initialized.Ssl.t
+    ; ctx : Ffi__library_must_be_initialized.Ssl_ctx.t
     ; client_or_server :
         [`Client | `Server]
     (* The reader and writer binary IO interfaces used by SSL to exchange data without
        going through a file descriptor.  Strangely enough, to use SSL we _read from_ wbio
        and _write to_ wbio.  The names are from the perspective of the SSL library. *)
-    ; rbio : Ffi.Bio.t
+    ; rbio : Ffi__library_must_be_initialized.Bio.t
     ; wbio :
-        Ffi.Bio.t
+        Ffi__library_must_be_initialized.Bio.t
     (* Reads and writes to/from C must go through a bigstring.  We share it in the record
        to prevent needless reallocations. *)
     ; bstr : bigstring
@@ -55,12 +67,15 @@ module Connection = struct
   let _tmp_rsa =
     let exponent = 65537 (* small random odd (prime?), e.g. 3, 17 or 65537 *) in
     Memo.general ~hashable:Int.hashable (fun key_length ->
+      let (module Ffi) = force ffi in
       Ffi.Rsa.generate_key ~key_length ~exponent ())
   ;;
 
   let tmp_ecdh =
-    let curve = Ffi.Ec_key.Curve.prime256v1 in
-    Ffi.Ec_key.new_by_curve_name curve
+    lazy
+      (let (module Ffi) = force ffi in
+       let curve = Ffi.Ec_key.Curve.prime256v1 in
+       Ffi.Ec_key.new_by_curve_name curve)
   ;;
 
   let create_exn
@@ -76,6 +91,7 @@ module Connection = struct
         ~net_to_ssl
         ~ssl_to_net
     =
+    let (module Ffi) = force ffi in
     (* SSL is transferred in 16 kB packets.  Therefore, it makes sense for our buffers to
        be the same size. *)
     let ssl = Ffi.Ssl.create_exn ctx in
@@ -97,7 +113,7 @@ module Connection = struct
     Ffi.Ssl.set_tmp_dh_callback ssl ~f:(fun ~is_export:_ ~key_length ->
       Rfc3526.modp key_length);
     (* Ffi.Ssl.set_tmp_rsa_callback ssl ~f:(fun ~is_export:_ ~key_length -> tmp_rsa key_length); *)
-    Ffi.Ssl.set_tmp_ecdh ssl tmp_ecdh;
+    Ffi.Ssl.set_tmp_ecdh ssl (force tmp_ecdh);
     Ffi.Ssl.set_bio ssl ~input:rbio ~output:wbio;
     let closed = Ivar.create () in
     { ssl
@@ -116,6 +132,7 @@ module Connection = struct
   ;;
 
   let use_crt_and_key ?crt_file ?key_file connection =
+    let (module Ffi) = force ffi in
     let try_both_formats ~load ~file_kind file =
       match file with
       | None -> Deferred.unit
@@ -180,6 +197,7 @@ module Connection = struct
         ~net_to_ssl
         ~ssl_to_net
     =
+    let (module Ffi) = force ffi in
     let connection =
       create_exn
         ?verify_modes
@@ -199,20 +217,35 @@ module Connection = struct
   ;;
 
   let raise_with_ssl_errors () =
+    let (module Ffi) = force ffi in
     failwiths "Ssl_error" (Ffi.get_error_stack ()) [%sexp_of: string list]
   ;;
 
   let closed t = Ivar.read t.closed
-  let version t = Ffi.Ssl.get_version t.ssl
-  let session_reused t = Ffi.Ssl.session_reused t.ssl
+
+  let version t =
+    let (module Ffi) = force ffi in
+    Ffi.Ssl.get_version t.ssl
+  ;;
+
+  let session_reused t =
+    let (module Ffi) = force ffi in
+    Ffi.Ssl.session_reused t.ssl
+  ;;
 
   let peer_certificate t =
+    let (module Ffi) = force ffi in
     match Ffi.Ssl.get_peer_certificate t.ssl with
     | None -> None
     | Some cert ->
       (match Ffi.Ssl.get_verify_result t.ssl with
        | Ok () -> Some (Ok cert)
        | Error e -> Some (Error e))
+  ;;
+
+  let pem_peer_certificate_chain t =
+    let (module Ffi) = force ffi in
+    Ffi.Ssl.get_peer_certificate_chain t.ssl
   ;;
 
   let blen t = Bigstring.length t.bstr
@@ -239,6 +272,7 @@ module Connection = struct
      This drains wbio whether or not ssl_to_net is closed or not.  When ssl_to_net IS
      closed, we make sure to close its matching partner: app_to_ssl. *)
   let rec write_pending_to_net t =
+    let (module Ffi) = force ffi in
     if verbose then Debug.amf [%here] "%s: write_pending_to_net" t.name;
     let amount_read = Ffi.Bio.read t.wbio ~buf:(bptr t) ~len:(blen t) in
     if verbose then Debug.amf [%here] "%s:   amount_read: %i" t.name amount_read;
@@ -276,6 +310,7 @@ module Connection = struct
   let rec in_retry_wrapper : type a.
     t -> f:(unit -> (a, _) Result.t) -> (a, _) Result.t Deferred.t =
     fun t ~f ->
+      let (module Ffi) = force ffi in
       let ret = f () in
       let module E = Ffi.Ssl_error in
       match ret with
@@ -314,6 +349,7 @@ module Connection = struct
   ;;
 
   let do_ssl_read t =
+    let (module Ffi) = force ffi in
     if verbose then Debug.amf [%here] "%s: BEGIN do_ssl_read" t.name;
     let read_as_str = ref "" in
     match%map
@@ -334,6 +370,7 @@ module Connection = struct
   ;;
 
   let do_ssl_write t str =
+    let (module Ffi) = force ffi in
     if verbose then Debug.amf [%here] "%s: BEGIN do_ssl_write" t.name;
     let len = String.length str in
     let rec go startidx =
@@ -406,6 +443,7 @@ module Connection = struct
   ;;
 
   let run_handshake t =
+    let (module Ffi) = force ffi in
     let handshake_fn, handshake_name =
       match t.client_or_server with
       | `Client -> Ffi.Ssl.connect, "connect"
@@ -444,12 +482,13 @@ module Session = struct
   module State = struct
     type t =
       { session :
-          Ffi.Ssl_session.t
+          Ffi__library_must_be_initialized.Ssl_session.t
       (* One SSL_SESSION object must only be used with one SSL_CTX object *)
-      ; ctx : Ffi.Ssl_ctx.t
+      ; ctx : Ffi__library_must_be_initialized.Ssl_ctx.t
       }
 
     let get ~conn =
+      let (module Ffi) = force ffi in
       match Ffi.Ssl.get1_session (Connection.ssl conn) with
       | None ->
         if verbose
@@ -463,6 +502,7 @@ module Session = struct
     ;;
 
     let reuse t ~conn =
+      let (module Ffi) = force ffi in
       if not (phys_equal t.ctx (Connection.ctx conn))
       then
         failwithf
@@ -491,6 +531,7 @@ end
    tuple. This is cached so that the same SSL_CTX object can be reused later *)
 let context_exn =
   Memo.general (fun (name, version, ca_file, ca_path, options) ->
+    let (module Ffi) = force ffi in
     let ctx = Ffi.Ssl_ctx.create_exn version in
     match%map
       match ca_file, ca_path with

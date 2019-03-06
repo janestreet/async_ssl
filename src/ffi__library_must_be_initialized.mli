@@ -6,6 +6,8 @@
 
     This module is for use with Async, which has no threads. You void your warranty
     by calling any of these functions from multiple threads at the same time.
+
+    You MUST call [Initialize.initialize ()] before calling any of these functions.
 *)
 open! Core
 
@@ -253,6 +255,7 @@ module Ssl : sig
   val set_tmp_ecdh : t -> Ec_key.t -> unit
   val set_tmp_rsa_callback : t -> f:(is_export:bool -> key_length:int -> Rsa.t) -> unit
   val get_cipher_list : t -> string list
+  val get_peer_certificate_chain : t -> string option
 end
 
 (** Pops all errors off of the openssl error stack, returning them as a list of

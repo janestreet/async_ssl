@@ -1,5 +1,6 @@
 #include <string.h>
 #include <openssl/x509v3.h>
+#include <openssl/ssl.h>
 #include "openssl_helpers.h"
 
 /* Return a NULL-terminated array of strings representing the subjectAltNames in [cert].
@@ -64,7 +65,7 @@ char **async_ssl__subject_alt_names(const X509 *cert) {
 
         cstr = ASN1_STRING_data(gen->d.dNSName);
         cstr_len = ASN1_STRING_length(gen->d.dNSName);
-        if ((names[idx] = malloc(cstr_len * sizeof(char) + 1)) == NULL) {
+        if ((names[idx] = malloc((cstr_len + 1) * sizeof(char))) == NULL) {
             async_ssl__free_subject_alt_names(names);
             return NULL;
         }
@@ -92,5 +93,53 @@ void async_ssl__free_subject_alt_names(char **results) {
     }
     free(results);
 
+    return;
+}
+
+/* Return a PEM-formatted buffer containing the peer's certificate chain.
+ *
+ * NULL is returned if there is no certificate chain, or if memory allocation fails.
+ */
+char *async_ssl__pem_peer_certificate_chain(const SSL *con) {
+    STACK_OF(X509) *cert_stack = NULL;
+    BIO *bio = NULL;
+    char *certs = NULL;
+    int i = 0, pending_bytes = 0;
+
+    /* [cert_stack] is not to be freed; [SSL_get_peer_cert_chain] simply returns an
+     * internal pointer and no reference count is incremented. */
+    if ((cert_stack = SSL_get_peer_cert_chain(con)) == NULL) {
+        return NULL;
+    }
+
+    if ((bio = BIO_new(BIO_s_mem())) == NULL) {
+        return NULL;
+    }
+    for (i = 0; i < sk_X509_num(cert_stack); i++) {
+        if ((PEM_write_bio_X509(bio, sk_X509_value(cert_stack, i))) == 0) {
+            goto cleanup;
+        }
+    }
+    pending_bytes = BIO_ctrl_pending(bio);
+    if ((certs = malloc((pending_bytes + 1) * sizeof(char))) == NULL) {
+        goto cleanup;
+    }
+    if ((BIO_read(bio, certs, pending_bytes)) < pending_bytes) {
+        free(certs);
+        goto cleanup;
+    }
+    certs[pending_bytes] = '\0';
+
+  cleanup:
+    BIO_set_close(bio, BIO_CLOSE);
+    BIO_free(bio);
+
+    return certs;
+}
+
+/* Free memory allocated for results returned from an earlier call to
+ * [async_ssl__get_peer_cert_chain]. */
+void async_ssl__free_pem_peer_certificate_chain(char *certs) {
+    free(certs);
     return;
 }

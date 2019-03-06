@@ -4,10 +4,12 @@ open! Core
     https://tools.ietf.org/html/rfc3526 *)
 
 let make ~prime ~generator =
-  Ffi.Dh.create ~prime:(`hex prime) ~generator:(`hex generator)
+  Ffi__library_must_be_initialized.Dh.create
+    ~prime:(`hex prime)
+    ~generator:(`hex generator)
 ;;
 
-let modp_1536 =
+let modp_1536 () =
   make
     (* 2.  1536-bit MODP Group
        The 1536 bit MODP group has been used for the implementations for
@@ -20,7 +22,7 @@ let modp_1536 =
     ~generator:"02"
 ;;
 
-let modp_2048 =
+let modp_2048 () =
   make
     (* 3.  2048-bit MODP Group
        This group is assigned id 14.
@@ -30,7 +32,7 @@ let modp_2048 =
     ~generator:"02"
 ;;
 
-let modp_3072 =
+let modp_3072 () =
   make
     (* 4.  3072-bit MODP Group
        This group is assigned id 15.
@@ -40,7 +42,7 @@ let modp_3072 =
     ~generator:"02"
 ;;
 
-let modp_4096 =
+let modp_4096 () =
   make
     (* 5.  4096-bit MODP Group
        This group is assigned id 16.
@@ -50,7 +52,7 @@ let modp_4096 =
     ~generator:"02"
 ;;
 
-let modp_6144 =
+let modp_6144 () =
   make
     (* 6.  6144-bit MODP Group
        This group is assigned id 17.
@@ -60,7 +62,7 @@ let modp_6144 =
     ~generator:"02"
 ;;
 
-let modp_8192 =
+let modp_8192 () =
   make
     (* 7.  8192-bit MODP Group
        This group is assigned id 18.
@@ -72,14 +74,14 @@ let modp_8192 =
 
 let modp n =
   if n <= 1536
-  then modp_1536
+  then modp_1536 ()
   else if n <= 2048
-  then modp_2048
+  then modp_2048 ()
   else if n <= 3072
-  then modp_3072
+  then modp_3072 ()
   else if n <= 4096
-  then modp_4096
+  then modp_4096 ()
   else if n <= 6144
-  then modp_6144
-  else modp_8192
+  then modp_6144 ()
+  else modp_8192 ()
 ;;

@@ -57,6 +57,7 @@ module Connection : sig
   (* None if the other side sent us no certificate, Error if validation failed. *)
 
   val peer_certificate : t -> Certificate.t Or_error.t option
+  val pem_peer_certificate_chain : t -> string option
   val session_reused : t -> bool
 end
 

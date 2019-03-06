@@ -460,5 +460,15 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let set_tlsext_host_name =
       foreign "SSL_set_tlsext_host_name" Ctypes.(t @-> ptr char @-> returning int)
     ;;
+
+    let pem_peer_certificate_chain =
+      foreign "async_ssl__pem_peer_certificate_chain" Ctypes.(t @-> returning (ptr char))
+    ;;
+
+    let free_pem_peer_certificate_chain =
+      foreign
+        "async_ssl__free_pem_peer_certificate_chain"
+        Ctypes.(ptr char @-> returning void)
+    ;;
   end
 end

@@ -1,3 +1,6 @@
+module Types = Async_ssl_bindings.Ffi_bindings.Types (Ffi_generated_types)
+module Bindings = Async_ssl_bindings.Ffi_bindings.Bindings (Ffi_generated)
+
 (* All debug traces are guarded with [if verbose]. *)
 let verbose = false
 

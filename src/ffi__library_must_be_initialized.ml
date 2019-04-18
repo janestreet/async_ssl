@@ -291,12 +291,12 @@ module Dh = struct
       p)
   ;;
 
-  let generate_parameters ~prime_len ~generator ?progress () : t =
+  let generate_parameters ~prime_len ~generator () : t =
     let p =
       Bindings.Dh.generate_parameters
         prime_len
         generator
-        (Option.map progress ~f:(fun f a b _ -> f a b))
+        Ctypes.(coerce (ptr void) (static_funptr Bindings.Progress_callback.t) null)
         Ctypes.null
     in
     if Ctypes.is_null p
@@ -346,12 +346,12 @@ module Rsa = struct
 
   let t = Ctypes.(ptr void)
 
-  let generate_key ~key_length ~exponent ?progress () : t =
+  let generate_key ~key_length ~exponent () : t =
     let p =
       Bindings.Rsa.generate_key
         key_length
         exponent
-        (Option.map progress ~f:(fun f a b _ -> f a b))
+        Ctypes.(coerce (ptr void) (static_funptr Bindings.Progress_callback.t) null)
         Ctypes.null
     in
     if p = Ctypes.null
@@ -579,17 +579,11 @@ module Ssl = struct
     | n -> failwithf "OpenSSL bug: SSL_set_cipher_list returned %d" n ()
   ;;
 
-  let set_tmp_dh_callback t ~f =
-    Bindings.Ssl.set_tmp_dh_callback t (fun _t is_export key_length ->
-      f ~is_export ~key_length)
-  ;;
-
+  let tmp_dh_callback = Bindings.Ssl.tmp_dh_callback
+  let set_tmp_dh_callback = Bindings.Ssl.set_tmp_dh_callback
   let set_tmp_ecdh = Bindings.Ssl.set_tmp_ecdh
-
-  let set_tmp_rsa_callback t ~f =
-    Bindings.Ssl.set_tmp_rsa_callback t (fun _t is_export key_length ->
-      f ~is_export ~key_length)
-  ;;
+  let tmp_rsa_callback = Bindings.Ssl.tmp_rsa_callback
+  let set_tmp_rsa_callback = Bindings.Ssl.set_tmp_rsa_callback
 
   let get_cipher_list t =
     let rec loop i acc =

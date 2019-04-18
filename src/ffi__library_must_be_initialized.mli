@@ -148,13 +148,7 @@ module Dh : sig
   type t
 
   val create : prime:[`hex of string] -> generator:[`hex of string] -> t
-
-  val generate_parameters
-    :  prime_len:int
-    -> generator:int
-    -> ?progress:(int -> int -> unit)
-    -> unit
-    -> t
+  val generate_parameters : prime_len:int -> generator:int -> unit -> t
 end
 
 module Ec_key : sig
@@ -176,12 +170,7 @@ end
 module Rsa : sig
   type t
 
-  val generate_key
-    :  key_length:int
-    -> exponent:int
-    -> ?progress:(int -> int -> unit)
-    -> unit
-    -> t
+  val generate_key : key_length:int -> exponent:int -> unit -> t
 end
 
 (* Represents an SSL connection. This follows the naming convention of libopenssl, but
@@ -251,9 +240,16 @@ module Ssl : sig
       This is really [SSL_set_cipher_list t (String.concat ~sep:":" ("-ALL" ::  ciphers))]. *)
 
   val set_cipher_list_exn : t -> string list -> unit
-  val set_tmp_dh_callback : t -> f:(is_export:bool -> key_length:int -> Dh.t) -> unit
+  val tmp_dh_callback : (t -> bool -> int -> Dh.t) Ctypes.fn
+  val set_tmp_dh_callback : t -> (t -> bool -> int -> Dh.t) Ctypes.static_funptr -> unit
   val set_tmp_ecdh : t -> Ec_key.t -> unit
-  val set_tmp_rsa_callback : t -> f:(is_export:bool -> key_length:int -> Rsa.t) -> unit
+  val tmp_rsa_callback : (t -> bool -> int -> Rsa.t) Ctypes.fn
+
+  val set_tmp_rsa_callback
+    :  t
+    -> (t -> bool -> int -> Rsa.t) Ctypes.static_funptr
+    -> unit
+
   val get_cipher_list : t -> string list
   val get_peer_certificate_chain : t -> string option
 end

@@ -65,7 +65,7 @@ module Connection = struct
     }
   [@@deriving sexp_of, fields]
 
-  let _tmp_rsa =
+  let tmp_rsa =
     let exponent = 65537 (* small random odd (prime?), e.g. 3, 17 or 65537 *) in
     Memo.general ~hashable:Int.hashable (fun key_length ->
       let (module Ffi) = force ffi in
@@ -77,6 +77,29 @@ module Connection = struct
       (let (module Ffi) = force ffi in
        let curve = Ffi.Ec_key.Curve.prime256v1 in
        Ffi.Ec_key.new_by_curve_name curve)
+  ;;
+
+  (* To ensure that Ctypes.Foreign does not free the libffi closure pre-maturely we
+     need to retain the functions we are eporting to C. *)
+  let static_funs = ref []
+
+  let make_static_fun_ptr fn f =
+    static_funs := Obj.repr f :: !static_funs;
+    Ctypes.coerce (Foreign.funptr fn) (Ctypes.static_funptr fn) f
+  ;;
+
+  let tmp_dh_callback =
+    lazy
+      (let (module Ffi) = force ffi in
+       make_static_fun_ptr Ffi.Ssl.tmp_dh_callback (fun _t _is_export key_length ->
+         Rfc3526.modp key_length))
+  ;;
+
+  let tmp_rsa_callback =
+    lazy
+      (let (module Ffi) = force ffi in
+       make_static_fun_ptr Ffi.Ssl.tmp_rsa_callback (fun _t _is_export key_length ->
+         tmp_rsa key_length))
   ;;
 
   let create_exn
@@ -111,10 +134,9 @@ module Connection = struct
      | `Openssl_default -> ()
      | `Secure -> Ffi.Ssl.set_cipher_list_exn ssl secure_ciphers
      | `Only allowed_ciphers -> Ffi.Ssl.set_cipher_list_exn ssl allowed_ciphers);
-    Ffi.Ssl.set_tmp_dh_callback ssl ~f:(fun ~is_export:_ ~key_length ->
-      Rfc3526.modp key_length);
-    (* Ffi.Ssl.set_tmp_rsa_callback ssl ~f:(fun ~is_export:_ ~key_length -> tmp_rsa key_length); *)
+    Ffi.Ssl.set_tmp_dh_callback ssl (force tmp_dh_callback);
     Ffi.Ssl.set_tmp_ecdh ssl (force tmp_ecdh);
+    (* Ffi.Ssl.set_tmp_rsa_callback ssl (force tmp_rsa_callback); *)
     Ffi.Ssl.set_bio ssl ~input:rbio ~output:wbio;
     let closed = Ivar.create () in
     { ssl

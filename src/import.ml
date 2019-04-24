@@ -10,9 +10,9 @@ let verbose = false
     results in the order they were produced. *)
 let iter_while_rev : type a. iter:(unit -> a) -> cond:(a -> bool) -> a list =
   fun ~iter ~cond ->
-    let rec go sofar =
-      let r = iter () in
-      if cond r then go (r :: sofar) else sofar
-    in
-    go []
+  let rec go sofar =
+    let r = iter () in
+    if cond r then go (r :: sofar) else sofar
+  in
+  go []
 ;;

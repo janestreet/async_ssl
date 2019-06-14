@@ -240,16 +240,15 @@ module Ssl : sig
       This is really [SSL_set_cipher_list t (String.concat ~sep:":" ("-ALL" ::  ciphers))]. *)
 
   val set_cipher_list_exn : t -> string list -> unit
-  val tmp_dh_callback : (t -> bool -> int -> Dh.t) Ctypes.fn
-  val set_tmp_dh_callback : t -> (t -> bool -> int -> Dh.t) Ctypes.static_funptr -> unit
+
+  module Tmp_dh_callback : Foreign.Funptr with type fn = t -> bool -> int -> Dh.t
+
+  val set_tmp_dh_callback : t -> Tmp_dh_callback.t -> unit
   val set_tmp_ecdh : t -> Ec_key.t -> unit
-  val tmp_rsa_callback : (t -> bool -> int -> Rsa.t) Ctypes.fn
 
-  val set_tmp_rsa_callback
-    :  t
-    -> (t -> bool -> int -> Rsa.t) Ctypes.static_funptr
-    -> unit
+  module Tmp_rsa_callback : Foreign.Funptr with type fn = t -> bool -> int -> Rsa.t
 
+  val set_tmp_rsa_callback : t -> Tmp_rsa_callback.t -> unit
   val get_cipher_list : t -> string list
   val get_peer_certificate_chain : t -> string option
 end

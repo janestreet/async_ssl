@@ -17,8 +17,8 @@ depends: [
   "ppx_jane"
   "stdio"
   "conf-openssl"
-  "ctypes"
-  "ctypes-foreign"
+  "ctypes"         {>= "0.14.0"}
+  "ctypes-foreign" {>= "0.15.0"}
   "dune"           {build & >= "1.5.1"}
 ]
 synopsis: "An Async-pipe-based interface with OpenSSL"

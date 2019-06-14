@@ -79,27 +79,24 @@ module Connection = struct
        Ffi.Ec_key.new_by_curve_name curve)
   ;;
 
-  (* To ensure that Ctypes.Foreign does not free the libffi closure pre-maturely we
-     need to retain the functions we are eporting to C. *)
-  let static_funs = ref []
-
-  let make_static_fun_ptr fn f =
-    static_funs := Obj.repr f :: !static_funs;
-    Ctypes.coerce (Foreign.funptr fn) (Ctypes.static_funptr fn) f
-  ;;
-
   let tmp_dh_callback =
     lazy
+      (* To ensure that the underlying libffi closure is not released pre-maturely
+         we create (and never free) a [Foreign.dynamic_funptr] here.
+         This does not leak as only 2 callbacks are ever defined. *)
       (let (module Ffi) = force ffi in
-       make_static_fun_ptr Ffi.Ssl.tmp_dh_callback (fun _t _is_export key_length ->
-         Rfc3526.modp key_length))
+       Ffi.Ssl.Tmp_dh_callback.of_fun
+         ~debug_info:(Source_code_position.to_string [%here])
+         (fun _t _is_export key_length -> Rfc3526.modp key_length))
   ;;
 
   let tmp_rsa_callback =
     lazy
+      (* Like [tmp_dh_callback]. *)
       (let (module Ffi) = force ffi in
-       make_static_fun_ptr Ffi.Ssl.tmp_rsa_callback (fun _t _is_export key_length ->
-         tmp_rsa key_length))
+       Ffi.Ssl.Tmp_rsa_callback.of_fun
+         ~debug_info:(Source_code_position.to_string [%here])
+         (fun _t _is_export key_length -> tmp_rsa key_length))
   ;;
 
   let create_exn

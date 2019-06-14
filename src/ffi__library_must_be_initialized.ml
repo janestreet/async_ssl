@@ -292,13 +292,7 @@ module Dh = struct
   ;;
 
   let generate_parameters ~prime_len ~generator () : t =
-    let p =
-      Bindings.Dh.generate_parameters
-        prime_len
-        generator
-        Ctypes.(coerce (ptr void) (static_funptr Bindings.Progress_callback.t) null)
-        Ctypes.null
-    in
+    let p = Bindings.Dh.generate_parameters prime_len generator None Ctypes.null in
     if Ctypes.is_null p
     then failwith "Unable to allocate/generate DH parameters."
     else (
@@ -347,13 +341,7 @@ module Rsa = struct
   let t = Ctypes.(ptr void)
 
   let generate_key ~key_length ~exponent () : t =
-    let p =
-      Bindings.Rsa.generate_key
-        key_length
-        exponent
-        Ctypes.(coerce (ptr void) (static_funptr Bindings.Progress_callback.t) null)
-        Ctypes.null
-    in
+    let p = Bindings.Rsa.generate_key key_length exponent None Ctypes.null in
     if p = Ctypes.null
     then failwith "Unable to allocate/generate RSA key pair."
     else (
@@ -579,10 +567,13 @@ module Ssl = struct
     | n -> failwithf "OpenSSL bug: SSL_set_cipher_list returned %d" n ()
   ;;
 
-  let tmp_dh_callback = Bindings.Ssl.tmp_dh_callback
+  module Tmp_dh_callback = Bindings.Ssl.Tmp_dh_callback
+
   let set_tmp_dh_callback = Bindings.Ssl.set_tmp_dh_callback
   let set_tmp_ecdh = Bindings.Ssl.set_tmp_ecdh
-  let tmp_rsa_callback = Bindings.Ssl.tmp_rsa_callback
+
+  module Tmp_rsa_callback = Bindings.Ssl.Tmp_rsa_callback
+
   let set_tmp_rsa_callback = Bindings.Ssl.set_tmp_rsa_callback
 
   let get_cipher_list t =

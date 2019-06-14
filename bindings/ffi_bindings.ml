@@ -310,9 +310,10 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let hex2bn = foreign "BN_hex2bn" Ctypes.(ptr t @-> string @-> returning int)
   end
 
-  module Progress_callback = struct
-    let t = Ctypes_static.(int @-> int @-> ptr void @-> returning void)
-  end
+  module Progress_callback =
+    Foreign.Make_funptr
+      ((val Foreign.funptr_spec
+              Ctypes_static.(int @-> int @-> ptr void @-> returning void)))
 
   module Dh = struct
     type dh
@@ -340,8 +341,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let generate_parameters =
       foreign
         "DH_generate_parameters"
-        Ctypes.(
-          int @-> int @-> static_funptr Progress_callback.t @-> ptr void @-> returning t)
+        Ctypes.(int @-> int @-> Progress_callback.t_opt @-> ptr void @-> returning t)
     ;;
   end
 
@@ -361,8 +361,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let generate_key =
       foreign
         "RSA_generate_key"
-        Ctypes.(
-          int @-> int @-> static_funptr Progress_callback.t @-> ptr void @-> returning t)
+        Ctypes.(int @-> int @-> Progress_callback.t_opt @-> ptr void @-> returning t)
     ;;
 
     let free = foreign "RSA_free" Ctypes.(t @-> returning void)
@@ -408,24 +407,28 @@ module Bindings (F : Cstubs.FOREIGN) = struct
       foreign "SSL_get_cipher_list" Ctypes.(t @-> int @-> returning string_opt)
     ;;
 
-    let tmp_dh_callback = Ctypes_static.(t @-> bool @-> int @-> returning Dh.t)
+    module Tmp_dh_callback =
+      Foreign.Make_funptr
+        ((val Foreign.funptr_spec Ctypes_static.(t @-> bool @-> int @-> returning Dh.t)))
 
     let set_tmp_dh_callback =
       foreign
         "SSL_set_tmp_dh_callback"
-        Ctypes.(t @-> Ctypes.static_funptr tmp_dh_callback @-> returning void)
+        Ctypes.(t @-> Tmp_dh_callback.t @-> returning void)
     ;;
 
     let set_tmp_ecdh =
       foreign "SSL_set_tmp_ecdh" Ctypes.(t @-> Ec_key.t @-> returning void)
     ;;
 
-    let tmp_rsa_callback = Ctypes_static.(t @-> bool @-> int @-> returning Rsa.t)
+    module Tmp_rsa_callback =
+      Foreign.Make_funptr
+        ((val Foreign.funptr_spec Ctypes_static.(t @-> bool @-> int @-> returning Rsa.t)))
 
     let set_tmp_rsa_callback =
       foreign
         "SSL_set_tmp_rsa_callback"
-        Ctypes.(t @-> Ctypes.static_funptr tmp_rsa_callback @-> returning void)
+        Ctypes.(t @-> Tmp_rsa_callback.t @-> returning void)
     ;;
 
     (* free with X509_free() (source: manpage of SSL_get_peer_certificate(3)) *)

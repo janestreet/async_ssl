@@ -42,6 +42,10 @@ module Ssl_ctx : sig
       purposes are located.  The certificates available via [ca_file] and [ca_path] are
       trusted.
 
+      When used in a server the certificates are used, if necessary, to fill in holes when
+      the server is building its own certificate chain. For this use-case they need not be
+      CA certificates, and in fact will likely need to include intermediate certificates.
+
       If [ca_file] is not [None], it points to a file of CA certificates in PEM format.
       It may have more than one certificate.
 

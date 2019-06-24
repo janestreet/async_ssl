@@ -139,12 +139,13 @@ module Ssl_ctx = struct
       failwiths
         "Could not set session id context."
         (`Return_value x, `Errors (get_error_stack ()))
-        [%sexp_of: [`Return_value of int] * [`Errors of string list]]
+        [%sexp_of: [ `Return_value of int ] * [ `Errors of string list ]]
   ;;
 
   let load_verify_locations ?ca_file ?ca_path ctx =
     match%bind
-      In_thread.run (fun () -> Bindings.Ssl_ctx.load_verify_locations ctx ca_file ca_path)
+      In_thread.run (fun () ->
+        Bindings.Ssl_ctx.load_verify_locations ctx ca_file ca_path)
     with
     (* Yep, 1 means success. *)
     | 1 -> Deferred.return (Or_error.return ())
@@ -163,7 +164,7 @@ module Ssl_ctx = struct
       failwiths
         "Could not set default verify paths."
         (`Return_value x, `Errors (get_error_stack ()))
-        [%sexp_of: [`Return_value of int] * [`Errors of string list]]
+        [%sexp_of: [ `Return_value of int ] * [ `Errors of string list ]]
   ;;
 end
 

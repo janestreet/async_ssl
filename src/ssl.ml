@@ -45,14 +45,12 @@ module Connection = struct
   type t =
     { ssl : Ffi__library_must_be_initialized.Ssl.t
     ; ctx : Ffi__library_must_be_initialized.Ssl_ctx.t
-    ; client_or_server :
-        [`Client | `Server]
+    ; client_or_server : [ `Client | `Server ]
     (* The reader and writer binary IO interfaces used by SSL to exchange data without
        going through a file descriptor.  Strangely enough, to use SSL we _read from_ wbio
        and _write to_ wbio.  The names are from the perspective of the SSL library. *)
     ; rbio : Ffi__library_must_be_initialized.Bio.t
-    ; wbio :
-        Ffi__library_must_be_initialized.Bio.t
+    ; wbio : Ffi__library_must_be_initialized.Bio.t
     (* Reads and writes to/from C must go through a bigstring.  We share it in the record
        to prevent needless reallocations. *)
     ; bstr : bigstring
@@ -327,8 +325,9 @@ module Connection = struct
 
   (* Runs an ssl function (either ssl_read or ssl_write), possibly retrying the call if
      an error was returned. *)
-  let rec in_retry_wrapper : type a.
-    t -> f:(unit -> (a, _) Result.t) -> (a, _) Result.t Deferred.t =
+  let rec in_retry_wrapper
+    : type a. t -> f:(unit -> (a, _) Result.t) -> (a, _) Result.t Deferred.t
+    =
     fun t ~f ->
       let (module Ffi) = force ffi in
       let ret = f () in
@@ -423,7 +422,7 @@ module Connection = struct
           failwiths
             "Unexpected SSL error during write."
             e
-            [%sexp_of: [`Session_closed | `Stream_eof]])
+            [%sexp_of: [ `Session_closed | `Stream_eof ]])
     in
     go 0
   ;;
@@ -501,8 +500,7 @@ end
 module Session = struct
   module State = struct
     type t =
-      { session :
-          Ffi__library_must_be_initialized.Ssl_session.t
+      { session : Ffi__library_must_be_initialized.Ssl_session.t
       (* One SSL_SESSION object must only be used with one SSL_CTX object *)
       ; ctx : Ffi__library_must_be_initialized.Ssl_ctx.t
       }

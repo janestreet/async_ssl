@@ -145,7 +145,7 @@ val client
       not the default for backwards-compatibility reasons. However, in early 2018
       [`Secure] became the default to at least force users to think about this if they
       want something less secure. *)
-  -> ?allowed_ciphers:[`Secure | `Openssl_default | `Only of string list]
+  -> ?allowed_ciphers:[ `Secure | `Openssl_default | `Only of string list ]
   -> ?ca_file:string
   -> ?ca_path:string
   -> ?crt_file:string
@@ -176,7 +176,7 @@ val server
   -> ?name:string
   (** Use [allowed_ciphers] to control which ciphers should be used. See comment in
       [client] above for more details. *)
-  -> ?allowed_ciphers:[`Secure | `Openssl_default | `Only of string list]
+  -> ?allowed_ciphers:[ `Secure | `Openssl_default | `Only of string list ]
   -> ?ca_file:string
   -> ?ca_path:string
   -> crt_file:string

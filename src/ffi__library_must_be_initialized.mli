@@ -151,7 +151,7 @@ end
 module Dh : sig
   type t
 
-  val create : prime:[`hex of string] -> generator:[`hex of string] -> t
+  val create : prime:[ `hex of string ] -> generator:[ `hex of string ] -> t
   val generate_parameters : prime_len:int -> generator:int -> unit -> t
 end
 
@@ -190,7 +190,7 @@ module Ssl : sig
 
   (** Prepare the ssl connection for an initial handshake - either as a server ([`Accept])
       or as a client ([`Connect]). *)
-  val set_initial_state : t -> [`Connect | `Accept] -> unit
+  val set_initial_state : t -> [ `Connect | `Accept ] -> unit
 
   val connect : t -> (unit, Ssl_error.t) Result.t
   val accept : t -> (unit, Ssl_error.t) Result.t
@@ -211,7 +211,7 @@ module Ssl : sig
   val use_certificate_file
     :  t
     -> crt:string
-    -> file_type:[`PEM | `ASN1]
+    -> file_type:[ `PEM | `ASN1 ]
     -> (unit, string list) Result.t Deferred.t
 
   (** For servers, use a private key [key] for securing communications.
@@ -224,7 +224,7 @@ module Ssl : sig
   val use_private_key_file
     :  t
     -> key:string
-    -> file_type:[`PEM | `ASN1]
+    -> file_type:[ `PEM | `ASN1 ]
     -> (unit, string list) Result.t Deferred.t
 
   val check_private_key : t -> unit Or_error.t

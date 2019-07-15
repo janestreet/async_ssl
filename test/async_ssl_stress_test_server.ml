@@ -37,6 +37,4 @@ let run () =
 ;;
 
 let cmd = Command.async ~summary:"Test" (Command.Param.return (fun () -> run ()))
-
-;;
-Async_command.run cmd
+let () = Async_command.run cmd

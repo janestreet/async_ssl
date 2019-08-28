@@ -126,6 +126,7 @@ char *async_ssl__pem_peer_certificate_chain(const SSL *con) {
     }
     if ((BIO_read(bio, certs, pending_bytes)) < pending_bytes) {
         free(certs);
+        certs = NULL;
         goto cleanup;
     }
     certs[pending_bytes] = '\0';

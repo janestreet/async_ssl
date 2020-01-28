@@ -83,18 +83,16 @@ module Connection = struct
          we create (and never free) a [Foreign.dynamic_funptr] here.
          This does not leak as only 2 callbacks are ever defined. *)
       (let (module Ffi) = force ffi in
-       Ffi.Ssl.Tmp_dh_callback.of_fun
-         ~debug_info:(Source_code_position.to_string [%here])
-         (fun _t _is_export key_length -> Rfc3526.modp key_length))
+       Ffi.Ssl.Tmp_dh_callback.of_fun (fun _t _is_export key_length ->
+         Rfc3526.modp key_length))
   ;;
 
   let tmp_rsa_callback =
     lazy
       (* Like [tmp_dh_callback]. *)
       (let (module Ffi) = force ffi in
-       Ffi.Ssl.Tmp_rsa_callback.of_fun
-         ~debug_info:(Source_code_position.to_string [%here])
-         (fun _t _is_export key_length -> tmp_rsa key_length))
+       Ffi.Ssl.Tmp_rsa_callback.of_fun (fun _t _is_export key_length ->
+         tmp_rsa key_length))
   ;;
 
   let create_exn

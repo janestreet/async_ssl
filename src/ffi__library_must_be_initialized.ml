@@ -80,13 +80,9 @@ let get_error_stack =
 ;;
 
 module Ssl_ctx = struct
-  type t = unit Ctypes.ptr
-
-  let t = Ctypes.(ptr void)
+  type t = Bindings.Ssl_ctx.t [@@deriving sexp_of]
 
   (* for use in ctypes type signatures *)
-
-  let sexp_of_t x = Ctypes.(ptr_diff x null) |> [%sexp_of: int]
 
   let create_exn ver =
     let ver_method =
@@ -169,13 +165,10 @@ module Ssl_ctx = struct
 end
 
 module Bio = struct
-  type t = unit Ctypes.ptr
-
-  let t = Ctypes.(ptr void)
+  type t = Bindings.Bio.t [@@deriving sexp_of]
 
   (* for use in ctypes signatures *)
 
-  let sexp_of_t bio = Ctypes.(ptr_diff bio null) |> [%sexp_of: int]
   let create () = Bindings.Bio.s_mem () |> Bindings.Bio.new_
 
   let read bio ~buf ~len =
@@ -192,7 +185,7 @@ module Bio = struct
 end
 
 module ASN1_object = struct
-  type t = unit Ctypes.ptr
+  type t = Bindings.ASN1_object.t
 
   let obj2nid = Bindings.ASN1_object.obj2nid
 
@@ -204,50 +197,48 @@ module ASN1_object = struct
 end
 
 module ASN1_string = struct
-  type t = unit Ctypes.ptr
+  type t = Bindings.ASN1_string.t
 
   let data t = Bindings.ASN1_string.data t
 end
 
 module X509_name_entry = struct
-  type t = unit Ctypes.ptr
+  type t = Bindings.X509_name_entry.t
 
   let get_object = Bindings.X509_name_entry.get_object
   let get_data = Bindings.X509_name_entry.get_data
 end
 
 module X509_name = struct
-  type t = unit Ctypes.ptr
+  type t = Bindings.X509_name.t
 
   let entry_count = Bindings.X509_name.entry_count
   let get_entry = Bindings.X509_name.get_entry
 end
 
 module X509 = struct
-  type t = unit Ctypes.ptr
+  type t = Bindings.X509.t
 
   let get_subject_name t =
-    let name = Bindings.X509.get_subject_name t in
-    if name = Ctypes.null then failwith "Certificate contains no subject name.";
-    name
+    match Bindings.X509.get_subject_name t with
+    | Some name -> name
+    | None -> failwith "Certificate contains no subject name."
   ;;
 
   let get_subject_alt_names t =
     let open Ctypes in
-    let results_p_p = Bindings.X509.subject_alt_names t in
-    if is_null results_p_p
-    then failwith "Failed to allocate memory in subject_alt_names()"
-    else
+    match Bindings.X509.subject_alt_names t with
+    | None -> failwith "Failed to allocate memory in subject_alt_names()"
+    | Some results_p_p ->
       protect
         ~f:(fun () ->
           let rec loop acc p =
-            let san = !@p in
-            if is_null san
-            then List.rev acc
-            else (
-              match coerce (ptr char) string_opt san with
-              | None -> failwith "Coercion of subjectAltName string failed"
-              | Some s -> loop (s :: acc) (p +@ 1))
+            match !@p with
+            | None -> List.rev acc
+            | Some san ->
+              (match coerce (ptr char) string_opt san with
+               | None -> failwith "Coercion of subjectAltName string failed"
+               | Some s -> loop (s :: acc) (p +@ 1))
           in
           loop [] results_p_p)
         ~finally:(fun () -> Bindings.X509.free_subject_alt_names results_p_p)
@@ -255,26 +246,26 @@ module X509 = struct
 end
 
 module Ssl_session = struct
-  type t = unit Ctypes.ptr
+  type t = Bindings.Ssl_session.t
 
   let create_exn () =
-    let p = Bindings.Ssl_session.new_ () in
-    if p = Ctypes.null
-    then failwith "Unable to allocate an SSL session."
-    else (
+    match Bindings.Ssl_session.new_ () with
+    | Some p ->
       Gc.add_finalizer_exn p Bindings.Ssl_session.free;
-      p)
+      p
+    | None -> failwith "Unable to allocate an SSL session."
   ;;
 end
 
 module Bignum = struct
-  type t = unit Ctypes.ptr
+  type t = Bindings.Bignum.t
 
   let create_no_gc (`hex hex) =
-    let p_ref = Ctypes.allocate Ctypes.(ptr void) Ctypes.null in
+    let p_ref = Ctypes.(allocate Bindings.Bignum.t_opt None) in
     let _len = Bindings.Bignum.hex2bn p_ref hex in
-    let p = Ctypes.( !@ ) p_ref in
-    if p = Ctypes.null then failwith "Unable to allocate/init Bignum." else p
+    match Ctypes.( !@ ) p_ref with
+    | Some p -> p
+    | None -> failwith "Unable to allocate/init Bignum."
   ;;
 end
 
@@ -282,28 +273,29 @@ module Dh = struct
   type t = Bindings.Dh.t
 
   let create ~prime ~generator : t =
-    let p = Bindings.Dh.new_ () in
-    if Ctypes.is_null p
-    then failwith "Unable to allocate/generate DH parameters."
-    else (
+    match Bindings.Dh.new_ () with
+    | None -> failwith "Unable to allocate/generate DH parameters."
+    | Some p ->
       Gc.add_finalizer_exn p Bindings.Dh.free;
-      Ctypes.setf (Ctypes.( !@ ) p) Bindings.Dh.p (Bignum.create_no_gc prime);
-      Ctypes.setf (Ctypes.( !@ ) p) Bindings.Dh.g (Bignum.create_no_gc generator);
-      p)
+      let p_struct =
+        Ctypes.( !@ ) Ctypes.(coerce Bindings.Dh.t (ptr Bindings.Dh.Struct.t) p)
+      in
+      Ctypes.setf p_struct Bindings.Dh.Struct.p (Bignum.create_no_gc prime);
+      Ctypes.setf p_struct Bindings.Dh.Struct.g (Bignum.create_no_gc generator);
+      p
   ;;
 
   let generate_parameters ~prime_len ~generator () : t =
-    let p = Bindings.Dh.generate_parameters prime_len generator None Ctypes.null in
-    if Ctypes.is_null p
-    then failwith "Unable to allocate/generate DH parameters."
-    else (
+    match Bindings.Dh.generate_parameters prime_len generator None Ctypes.null with
+    | None -> failwith "Unable to allocate/generate DH parameters."
+    | Some p ->
       Gc.add_finalizer_exn p Bindings.Dh.free;
-      p)
+      p
   ;;
 end
 
 module Ec_key = struct
-  type t = unit Ctypes.ptr
+  type t = Bindings.Ec_key.t
 
   module Curve = struct
     module T = struct
@@ -327,46 +319,37 @@ module Ec_key = struct
   end
 
   let new_by_curve_name curve : t =
-    let p = Bindings.Ec_key.new_by_curve_name curve in
-    if p = Ctypes.null
-    then failwith "Unable to allocate/generate EC key."
-    else (
+    match Bindings.Ec_key.new_by_curve_name curve with
+    | None -> failwith "Unable to allocate/generate EC key."
+    | Some p ->
       Gc.add_finalizer_exn p Bindings.Ec_key.free;
-      p)
+      p
   ;;
 end
 
 module Rsa = struct
-  type t = unit Ctypes.ptr
-
-  let t = Ctypes.(ptr void)
+  type t = Bindings.Rsa.t
 
   let generate_key ~key_length ~exponent () : t =
-    let p = Bindings.Rsa.generate_key key_length exponent None Ctypes.null in
-    if p = Ctypes.null
-    then failwith "Unable to allocate/generate RSA key pair."
-    else (
+    match Bindings.Rsa.generate_key key_length exponent None Ctypes.null with
+    | None -> failwith "Unable to allocate/generate RSA key pair."
+    | Some p ->
       Gc.add_finalizer_exn p Bindings.Rsa.free;
-      p)
+      p
   ;;
 end
 
 module Ssl = struct
-  type t = unit Ctypes.ptr
-
-  let t = Ctypes.(ptr void)
+  type t = Bindings.Ssl.t [@@deriving sexp_of]
 
   (* for use in ctypes signatures *)
 
-  let sexp_of_t ssl = Ctypes.(ptr_diff ssl null) |> [%sexp_of: int]
-
   let create_exn ctx =
-    let p = Bindings.Ssl.new_ ctx in
-    if p = Ctypes.null
-    then failwith "Unable to allocate an SSL connection."
-    else (
+    match Bindings.Ssl.new_ ctx with
+    | None -> failwith "Unable to allocate an SSL connection."
+    | Some p ->
       Gc.add_finalizer_exn p Bindings.Ssl.free;
-      p)
+      p
   ;;
 
   let set_method t version =
@@ -480,11 +463,8 @@ module Ssl = struct
 
   let get_peer_certificate t =
     let cert = Bindings.Ssl.get_peer_certificate t in
-    if cert = Ctypes.null
-    then None
-    else (
-      Gc.add_finalizer_exn cert Bindings.X509.free;
-      Some cert)
+    Option.iter cert ~f:(fun cert -> Gc.add_finalizer_exn cert Bindings.X509.free);
+    cert
   ;;
 
   let get_verify_result t =
@@ -528,12 +508,10 @@ module Ssl = struct
 
   let get1_session t =
     let sess = Bindings.Ssl.get1_session t in
-    if Ctypes.(to_voidp sess = null)
-    then None
-    else (
+    Option.iter sess ~f:(fun sess ->
       (* get1_session increments the reference count *)
-      Gc.add_finalizer_exn sess Bindings.Ssl_session.free;
-      Some sess)
+      Gc.add_finalizer_exn sess Bindings.Ssl_session.free);
+    sess
   ;;
 
   let check_private_key t =
@@ -588,10 +566,9 @@ module Ssl = struct
 
   let get_peer_certificate_chain t =
     let open Ctypes in
-    let results_p = Bindings.Ssl.pem_peer_certificate_chain t in
-    if is_null results_p
-    then None
-    else
+    match Bindings.Ssl.pem_peer_certificate_chain t with
+    | None -> None
+    | Some results_p ->
       protect
         ~f:(fun () ->
           match coerce (ptr char) string_opt results_p with

@@ -16,6 +16,6 @@
   (:standard (:include openssl-ccopt.sexp) \ -Werror -pedantic -Wall
    -Wunused))
  (c_library_flags :standard (:include openssl-cclib.sexp))
- (libraries ctypes.stubs ctypes ctypes.foreign.threaded)
+ (libraries ctypes.stubs ctypes ctypes.foreign.threaded base)
  (virtual_deps conf-openssl) (preprocessor_deps config.h)
  (preprocess (pps ppx_jane)))

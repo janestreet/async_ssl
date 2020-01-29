@@ -1,5 +1,50 @@
+open! Base
+
 [%%import
   "config.h"]
+
+module Voidp (T : sig
+    val name : string
+  end) : sig
+  type t [@@deriving sexp_of]
+
+  val t : t Ctypes.typ
+  val t_opt : t option Ctypes.typ
+end = struct
+  type t = unit Ctypes.ptr
+
+  let t = Ctypes.(ptr void)
+  let t_opt = Ctypes.(ptr_opt void)
+
+  let sexp_of_t t =
+    [%sexp (T.name : string), (Ctypes.raw_address_of_ptr t : Base.Nativeint.Hex.t)]
+  ;;
+end
+
+module Bignum = Voidp (struct
+    let name = "Bignum"
+  end)
+
+module Ssl = Voidp (struct
+    let name = "Ssl"
+  end)
+
+module Rsa = Voidp (struct
+    let name = "Rsa"
+  end)
+
+module Dh = Voidp (struct
+    let name = "Dh"
+  end)
+
+module Progress_callback =
+  (val Foreign.dynamic_funptr Ctypes.(int @-> int @-> ptr void @-> returning void))
+
+module Tmp_dh_callback =
+  (val Foreign.dynamic_funptr Ctypes.(Ssl.t @-> bool @-> int @-> returning Dh.t))
+
+module Tmp_rsa_callback =
+  (val Foreign.dynamic_funptr Ctypes.(Ssl.t @-> bool @-> int @-> returning Rsa.t))
 
 module Types (F : Cstubs.Types.TYPE) = struct
   module Ssl_op = struct
@@ -59,9 +104,12 @@ module Bindings (F : Cstubs.FOREIGN) = struct
      with 32bit build on 64bit host.
   *)
   module Ssl_method = struct
-    let ssl_method_t = Ctypes.(void @-> returning (ptr void))
+    include Voidp (struct
+        let name = "Ssl_method"
+      end)
+
     let dummy name () = failwith (Printf.sprintf "Ssl_method %s not implemented" name)
-    let implemented name = foreign name ssl_method_t
+    let implemented name = foreign name Ctypes.(void @-> returning t)
     let helper name f = f name
 
     [%%ifdef
@@ -177,10 +225,12 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   end
 
   module Ssl_ctx = struct
-    let t = Ctypes.(ptr void)
+    include Voidp (struct
+        let name = "Ssl_ctx"
+      end)
 
     (* free with SSL_CTX_free() (source: manpage of SSL_CTX_free(3)) *)
-    let new_ = foreign "SSL_CTX_new" Ctypes.(ptr void @-> returning (ptr_opt void))
+    let new_ = foreign "SSL_CTX_new" Ctypes.(Ssl_method.t @-> returning t_opt)
     let free = foreign "SSL_CTX_free" Ctypes.(t @-> returning void)
 
     let load_verify_locations =
@@ -210,7 +260,9 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   end
 
   module Bio = struct
-    let t = Ctypes.(ptr void)
+    include Voidp (struct
+        let name = "Bio"
+      end)
 
     (* for use in ctypes signatures *)
 
@@ -224,7 +276,10 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   end
 
   module ASN1_object = struct
-    let t = Ctypes.(ptr void)
+    include Voidp (struct
+        let name = "ASN1_object"
+      end)
+
     let obj2nid = foreign "OBJ_obj2nid" Ctypes.(t @-> returning int)
 
     (* returns pointer to statically-allocated string, do not free (source: obj_dat.[hc]
@@ -234,7 +289,10 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   end
 
   module ASN1_string = struct
-    let t = Ctypes.(ptr void)
+    include Voidp (struct
+        let name = "ASN1_string"
+      end)
+
     let length = foreign "ASN1_STRING_length" Ctypes.(t @-> returning int)
 
     (* returns internal pointer, do not free (source: manpage of ASN1_STRING_data(3)) *)
@@ -242,7 +300,9 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   end
 
   module X509_name_entry = struct
-    let t = Ctypes.(ptr void)
+    include Voidp (struct
+        let name = "X509_name_entry"
+      end)
 
     (* returns pointer to field in [t], do not free (source: x509name.c in openssl
        source) *)
@@ -258,7 +318,10 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   end
 
   module X509_name = struct
-    let t = Ctypes.(ptr void)
+    include Voidp (struct
+        let name = "X509_name"
+      end)
+
     let entry_count = foreign "X509_NAME_entry_count" Ctypes.(t @-> returning int)
 
     (* returns internal pointer, do not free (source: manpage of
@@ -269,12 +332,14 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   end
 
   module X509 = struct
-    let t = Ctypes.(ptr void)
+    include Voidp (struct
+        let name = "X509"
+      end)
 
     (* returns internal pointer, do not free (source: manpage of
        X509_get_subject_name(3)) *)
     let get_subject_name =
-      foreign "X509_get_subject_name" Ctypes.(t @-> returning X509_name.t)
+      foreign "X509_get_subject_name" Ctypes.(t @-> returning X509_name.t_opt)
     ;;
 
     let verify_cert_error_string =
@@ -284,101 +349,106 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let free = foreign "X509_free" Ctypes.(t @-> returning void)
 
     let subject_alt_names =
-      foreign "async_ssl__subject_alt_names" Ctypes.(t @-> returning (ptr (ptr char)))
+      foreign
+        "async_ssl__subject_alt_names"
+        Ctypes.(t @-> returning (ptr_opt (ptr_opt char)))
     ;;
 
     let free_subject_alt_names =
       foreign
         "async_ssl__free_subject_alt_names"
-        Ctypes.(ptr (ptr char) @-> returning void)
+        Ctypes.(ptr (ptr_opt char) @-> returning void)
     ;;
   end
 
   module Ssl_session = struct
-    let t = Ctypes.(ptr void)
+    include Voidp (struct
+        let name = "Ssl_session"
+      end)
 
     (* free with SSL_SESSION_free() (source: manpage of SSL_SESSION_free(3)) *)
-    let new_ = foreign "SSL_SESSION_new" Ctypes.(void @-> returning t)
+    let new_ = foreign "SSL_SESSION_new" Ctypes.(void @-> returning t_opt)
     let free = foreign "SSL_SESSION_free" Ctypes.(t @-> returning void)
   end
 
   module Bignum = struct
-    let t = Ctypes.(ptr void)
-    let new_ = foreign "BN_new" Ctypes.(void @-> returning t)
+    include Bignum
+
+    let new_ = foreign "BN_new" Ctypes.(void @-> returning t_opt)
     let free = foreign "BN_free" Ctypes.(t @-> returning void)
     let bin2bn = foreign "BN_bin2bn" Ctypes.(ptr char @-> int @-> t @-> returning t)
-    let hex2bn = foreign "BN_hex2bn" Ctypes.(ptr t @-> string @-> returning int)
+    let hex2bn = foreign "BN_hex2bn" Ctypes.(ptr t_opt @-> string @-> returning int)
   end
 
-  module Progress_callback =
-    Foreign.Make_funptr
-      ((val Foreign.funptr_spec
-              Ctypes_static.(int @-> int @-> ptr void @-> returning void)))
+  module Progress_callback = Progress_callback
 
   module Dh = struct
-    type dh
+    include Dh
 
-    let dh : dh Ctypes.structure Ctypes.typ = Ctypes.structure "DH"
-
-    (*_ a bunch of fields we don't care about but we need for ctypes to not break *)
-    let _pad = Ctypes.field dh "pad" Ctypes.int
-    let _version = Ctypes.field dh "version" Ctypes.int
-
-    (*_ we actually need these two fields to be able to create [DH*] values *)
-    let p = Ctypes.field dh "p" Bignum.t
-    let g = Ctypes.field dh "g" Bignum.t
-
-    (*_ lots more fields that we don't care about *)
-
-    let () = Ctypes.seal dh
-
-    type t = dh Ctypes.structure Ctypes.ptr
-
-    let t : t Ctypes.typ = Ctypes.(ptr dh)
-    let new_ = foreign "DH_new" Ctypes.(void @-> returning t)
+    let new_ = foreign "DH_new" Ctypes.(void @-> returning t_opt)
     let free = foreign "DH_free" Ctypes.(t @-> returning void)
 
     let generate_parameters =
       foreign
         "DH_generate_parameters"
-        Ctypes.(int @-> int @-> Progress_callback.t_opt @-> ptr void @-> returning t)
+        Ctypes.(int @-> int @-> Progress_callback.t_opt @-> ptr void @-> returning t_opt)
     ;;
+
+    module Struct = struct
+      type t
+
+      let t : t Ctypes.structure Ctypes.typ = Ctypes.structure "DH"
+
+      (*_ a bunch of fields we don't care about but we need for ctypes to not break *)
+      let _pad = Ctypes.field t "pad" Ctypes.int
+      let _version = Ctypes.field t "version" Ctypes.int
+
+      (*_ we actually need these two fields to be able to create [DH*] values *)
+      let p = Ctypes.field t "p" Bignum.t
+      let g = Ctypes.field t "g" Bignum.t
+
+      (*_ lots more fields that we don't care about *)
+
+      let () = Ctypes.seal t
+    end
   end
 
   module Ec_key = struct
-    let t = Ctypes.(ptr void)
+    include Voidp (struct
+        let name = "Ec_key"
+      end)
 
     let new_by_curve_name =
-      foreign "EC_KEY_new_by_curve_name" Ctypes.(int @-> returning t)
+      foreign "EC_KEY_new_by_curve_name" Ctypes.(int @-> returning t_opt)
     ;;
 
     let free = foreign "EC_KEY_free" Ctypes.(t @-> returning void)
   end
 
   module Rsa = struct
-    let t = Ctypes.(ptr void)
+    include Rsa
 
     let generate_key =
       foreign
         "RSA_generate_key"
-        Ctypes.(int @-> int @-> Progress_callback.t_opt @-> ptr void @-> returning t)
+        Ctypes.(int @-> int @-> Progress_callback.t_opt @-> ptr void @-> returning t_opt)
     ;;
 
     let free = foreign "RSA_free" Ctypes.(t @-> returning void)
   end
 
   module Ssl = struct
-    let t = Ctypes.(ptr void)
+    include Ssl
 
     (* free with SSL_free() (source: manpage of SSL_free(3)) *)
-    let new_ = foreign "SSL_new" Ctypes.(Ssl_ctx.t @-> returning t)
+    let new_ = foreign "SSL_new" Ctypes.(Ssl_ctx.t @-> returning t_opt)
     let free = foreign "SSL_free" Ctypes.(t @-> returning void)
 
     let set_method =
-      foreign "SSL_set_ssl_method" Ctypes.(t @-> ptr void @-> returning int)
+      foreign "SSL_set_ssl_method" Ctypes.(t @-> Ssl_method.t @-> returning int)
     ;;
 
-    let get_error = foreign "SSL_get_error" Ctypes.(ptr void @-> int @-> returning int)
+    let get_error = foreign "SSL_get_error" Ctypes.(t @-> int @-> returning int)
     let set_connect_state = foreign "SSL_set_connect_state" Ctypes.(t @-> returning void)
     let set_accept_state = foreign "SSL_set_accept_state" Ctypes.(t @-> returning void)
     let connect = foreign "SSL_connect" Ctypes.(t @-> returning int)
@@ -407,9 +477,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
       foreign "SSL_get_cipher_list" Ctypes.(t @-> int @-> returning string_opt)
     ;;
 
-    module Tmp_dh_callback =
-      Foreign.Make_funptr
-        ((val Foreign.funptr_spec Ctypes_static.(t @-> bool @-> int @-> returning Dh.t)))
+    module Tmp_dh_callback = Tmp_dh_callback
 
     let set_tmp_dh_callback =
       foreign
@@ -421,9 +489,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
       foreign "SSL_set_tmp_ecdh" Ctypes.(t @-> Ec_key.t @-> returning void)
     ;;
 
-    module Tmp_rsa_callback =
-      Foreign.Make_funptr
-        ((val Foreign.funptr_spec Ctypes_static.(t @-> bool @-> int @-> returning Rsa.t)))
+    module Tmp_rsa_callback = Tmp_rsa_callback
 
     let set_tmp_rsa_callback =
       foreign
@@ -433,7 +499,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
     (* free with X509_free() (source: manpage of SSL_get_peer_certificate(3)) *)
     let get_peer_certificate =
-      foreign "SSL_get_peer_certificate" Ctypes.(t @-> returning X509.t)
+      foreign "SSL_get_peer_certificate" Ctypes.(t @-> returning X509.t_opt)
     ;;
 
     let get_verify_result = foreign "SSL_get_verify_result" Ctypes.(t @-> returning long)
@@ -446,7 +512,10 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let session_reused = foreign "SSL_session_reused" Ctypes.(t @-> returning int)
 
     (* free with SSL_session_free() (source: manpage of SSL_get1_session(3)) *)
-    let get1_session = foreign "SSL_get1_session" Ctypes.(t @-> returning Ssl_session.t)
+    let get1_session =
+      foreign "SSL_get1_session" Ctypes.(t @-> returning Ssl_session.t_opt)
+    ;;
+
     let check_private_key = foreign "SSL_check_private_key" Ctypes.(t @-> returning int)
 
     let set_tlsext_host_name =
@@ -454,7 +523,9 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     ;;
 
     let pem_peer_certificate_chain =
-      foreign "async_ssl__pem_peer_certificate_chain" Ctypes.(t @-> returning (ptr char))
+      foreign
+        "async_ssl__pem_peer_certificate_chain"
+        Ctypes.(t @-> returning (ptr_opt char))
     ;;
 
     let free_pem_peer_certificate_chain =

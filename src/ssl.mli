@@ -191,3 +191,7 @@ val server
   -> ssl_to_net:string Pipe.Writer.t
   -> unit
   -> Connection.t Deferred.Or_error.t
+
+module For_testing : sig
+  val slow_down_io_to_exhibit_truncation_bugs : bool ref
+end

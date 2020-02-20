@@ -6,6 +6,10 @@ module Version = Version
 module Opt = Opt
 module Verify_mode = Verify_mode
 
+module For_testing = struct
+  let slow_down_io_to_exhibit_truncation_bugs = ref false
+end
+
 module type Ffi = module type of Ffi__library_must_be_initialized
 
 let ffi =
@@ -304,7 +308,11 @@ module Connection = struct
         if not (Pipe.is_closed t.ssl_to_net)
         then (
           if verbose then Debug.amf [%here] "%s: ssl_to_net <- '%s'" t.name to_write;
-          Pipe.write t.ssl_to_net to_write)
+          if !For_testing.slow_down_io_to_exhibit_truncation_bugs
+          then (
+            let%bind () = Clock.after (Time.Span.of_sec 0.001) in
+            Pipe.write t.ssl_to_net to_write)
+          else Pipe.write t.ssl_to_net to_write)
         else (
           if verbose then Debug.amf [%here] "%s: closing app_to_ssl" t.name;
           Pipe.close_read t.app_to_ssl;

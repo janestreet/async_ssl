@@ -238,7 +238,7 @@ module Connection = struct
 
   let raise_with_ssl_errors () =
     let (module Ffi) = force ffi in
-    failwiths "Ssl_error" (Ffi.get_error_stack ()) [%sexp_of: string list]
+    failwiths ~here:[%here] "Ssl_error" (Ffi.get_error_stack ()) [%sexp_of: string list]
   ;;
 
   let closed t = Ivar.read t.closed
@@ -426,6 +426,7 @@ module Connection = struct
         | Error e ->
           (* should never happen *)
           failwiths
+            ~here:[%here]
             "Unexpected SSL error during write."
             e
             [%sexp_of: [ `Session_closed | `Stream_eof ]])
@@ -562,7 +563,8 @@ let context_exn =
       | None, None -> return (Ok (Ffi.Ssl_ctx.set_default_verify_paths ctx))
       | _, _ -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
     with
-    | Error e -> failwiths "Could not initialize ssl context" e [%sexp_of: Error.t]
+    | Error e ->
+      failwiths ~here:[%here] "Could not initialize ssl context" e [%sexp_of: Error.t]
     | Ok () ->
       let session_id_context =
         Option.value name ~default:"default_session_id_context"
@@ -799,9 +801,19 @@ let%test_module _ =
           let%bind server_exit_status = Connection.closed server_conn in
           Or_error.ok_exn server_exit_status;
           if on_server <> "hello, server."
-          then failwiths "No hello world to server" on_server [%sexp_of: string];
+          then
+            failwiths
+              ~here:[%here]
+              "No hello world to server"
+              on_server
+              [%sexp_of: string];
           if on_client <> "hello, client."
-          then failwiths "No hello world to client" on_client [%sexp_of: string];
+          then
+            failwiths
+              ~here:[%here]
+              "No hello world to client"
+              on_client
+              [%sexp_of: string];
           return ())
       in
       let run_twice () =

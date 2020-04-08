@@ -1,3 +1,0 @@
-(executables (names async_ssl_stress_test_server)
- (libraries async async_ssl cohttp cohttp_async_lib core)
- (preprocess (pps ppx_jane)))

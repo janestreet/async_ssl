@@ -78,6 +78,11 @@ module Types (F : Cstubs.Types.TYPE) = struct
     let syscall = F.constant "SSL_ERROR_SYSCALL" F.int
     let ssl = F.constant "SSL_ERROR_SSL" F.int
   end
+
+  module X509_filetype = struct
+    let pem = F.constant "X509_FILETYPE_PEM" F.int
+    let asn1 = F.constant "X509_FILETYPE_ASN1" F.int
+  end
 end
 
 module Bindings (F : Cstubs.FOREIGN) = struct
@@ -255,6 +260,24 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
     let set_options =
       foreign "SSL_CTX_set_options" Ctypes.(t @-> ulong @-> returning ulong)
+    ;;
+
+    let use_certificate_chain_file =
+      foreign
+        "SSL_CTX_use_certificate_chain_file"
+        Ctypes.(t @-> string @-> returning int)
+    ;;
+
+    let use_certificate_file =
+      foreign
+        "SSL_CTX_use_certificate_file"
+        Ctypes.(t @-> string @-> int @-> returning int)
+    ;;
+
+    let use_private_key_file =
+      foreign
+        "SSL_CTX_use_PrivateKey_file"
+        Ctypes.(t @-> string @-> int @-> returning int)
     ;;
 
   end
@@ -456,14 +479,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let set_bio = foreign "SSL_set_bio" Ctypes.(t @-> Bio.t @-> Bio.t @-> returning void)
     let read = foreign "SSL_read" Ctypes.(t @-> ptr char @-> int @-> returning int)
     let write = foreign "SSL_write" Ctypes.(t @-> string @-> int @-> returning int)
-
-    let use_certificate_file =
-      foreign "SSL_use_certificate_file" Ctypes.(t @-> string @-> int @-> returning int)
-    ;;
-
-    let use_private_key_file =
-      foreign "SSL_use_PrivateKey_file" Ctypes.(t @-> string @-> int @-> returning int)
-    ;;
 
     let set_verify =
       foreign "SSL_set_verify" Ctypes.(t @-> int @-> ptr void @-> returning void)

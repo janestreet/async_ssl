@@ -164,6 +164,37 @@ module Ssl_ctx = struct
         (`Return_value x, `Errors (get_error_stack ()))
         [%sexp_of: [ `Return_value of int ] * [ `Errors of string list ]]
   ;;
+
+  let try_certificate_chain_and_failover_to_asn1 ctx crt_file =
+    match Bindings.Ssl_ctx.use_certificate_chain_file ctx crt_file with
+    | 1 -> 1
+    | _ -> Bindings.Ssl_ctx.use_certificate_file ctx crt_file Types.X509_filetype.asn1
+  ;;
+
+  let try_both_private_key_formats ctx key_file =
+    match Bindings.Ssl_ctx.use_private_key_file ctx key_file Types.X509_filetype.pem with
+    | 1 -> 1
+    | _ -> Bindings.Ssl_ctx.use_private_key_file ctx key_file Types.X509_filetype.asn1
+  ;;
+
+  let use_certificate_chain_and_key_files ~crt_file ~key_file ctx =
+    let error i =
+      Deferred.Or_error.error
+        "Could not set default verify paths."
+        (`Return_value i, `Errors (get_error_stack ()))
+        [%sexp_of: [ `Return_value of int ] * [ `Errors of string list ]]
+    in
+    match%bind
+      In_thread.run (fun () -> try_certificate_chain_and_failover_to_asn1 ctx crt_file)
+    with
+    | 1 ->
+      (match%bind
+         In_thread.run (fun () -> try_both_private_key_formats ctx key_file)
+       with
+       | 1 -> Deferred.Or_error.return ()
+       | x -> error x)
+    | x -> error x
+  ;;
 end
 
 module Bio = struct
@@ -437,25 +468,6 @@ module Ssl = struct
     let retval = Bindings.Ssl.write ssl buf len in
     if verbose then Debug.amf [%here] "SSL_write(%i) -> %i" len retval;
     get_read_write_error ssl ~retval
-  ;;
-
-  let type_to_c_enum = function
-    | `PEM -> 1
-    | `ASN1 -> 2
-  ;;
-
-  let use_certificate_file ssl ~crt ~file_type =
-    let c_enum = type_to_c_enum file_type in
-    In_thread.run (fun () ->
-      let retval = Bindings.Ssl.use_certificate_file ssl crt c_enum in
-      if retval > 0 then Ok () else Error (get_error_stack ()))
-  ;;
-
-  let use_private_key_file ssl ~key ~file_type =
-    let c_enum = type_to_c_enum file_type in
-    In_thread.run (fun () ->
-      let retval = Bindings.Ssl.use_private_key_file ssl key c_enum in
-      if retval > 0 then Ok () else Error (get_error_stack ()))
   ;;
 
   let set_verify t flags =

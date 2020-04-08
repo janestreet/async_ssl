@@ -82,6 +82,14 @@ module Ssl_ctx : sig
 
       https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_set_session_id_context.html *)
   val set_session_id_context : t -> string -> unit
+
+  (** Set the certificate and key file to prove one's identity. These will often be files
+      ending with [.pem] and [.key] *)
+  val use_certificate_chain_and_key_files
+    :  crt_file:string
+    -> key_file:string
+    -> t
+    -> unit Deferred.Or_error.t
 end
 
 module Bio : sig
@@ -203,29 +211,6 @@ module Ssl : sig
 
   (** Write to the SSL application side. *)
   val write : t -> buf:string -> len:int -> (int, Ssl_error.t) Result.t
-
-  (** Use a certificate file, signed by a CA (or self-signed if you prefer) to validate
-      you are who you say you are.  The file will generally end in [.crt].
-
-      The 'type' is the encoding of your certificate file. You should know this! *)
-  val use_certificate_file
-    :  t
-    -> crt:string
-    -> file_type:[ `PEM | `ASN1 ]
-    -> (unit, string list) Result.t Deferred.t
-
-  (** For servers, use a private key [key] for securing communications.
-
-      > openssl genrsa -out server.key 4096 # generates a key called server.key
-
-      The file will generally end in [.key].
-
-      The 'type' is the encoding of your certificate file.  You should know this! *)
-  val use_private_key_file
-    :  t
-    -> key:string
-    -> file_type:[ `PEM | `ASN1 ]
-    -> (unit, string list) Result.t Deferred.t
 
   val check_private_key : t -> unit Or_error.t
   val set_verify : t -> Verify_mode.t list -> unit

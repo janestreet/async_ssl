@@ -151,33 +151,10 @@ module Connection = struct
     }
   ;;
 
-  let use_crt_and_key ?crt_file ?key_file connection =
-    let (module Ffi) = force ffi in
-    let try_both_formats ~load ~file_kind file =
-      match file with
-      | None -> Deferred.unit
-      | Some file ->
-        (match%bind load `PEM file with
-         | Ok () -> return ()
-         | Error _ ->
-           (match%map load `ASN1 file with
-            | Ok () -> ()
-            | Error _ -> failwithf "Could not load %s @ %s" file_kind file ()))
-    in
-    let%bind () =
-      try_both_formats crt_file ~file_kind:"certificate file" ~load:(fun file_type crt ->
-        Ffi.Ssl.use_certificate_file connection.ssl ~crt ~file_type)
-    in
-    try_both_formats key_file ~file_kind:"private key file" ~load:(fun file_type key ->
-      Ffi.Ssl.use_private_key_file connection.ssl ~key ~file_type)
-  ;;
-
   let create_client_exn
         ?hostname
         ?name:(nm = "(anonymous)")
         ?allowed_ciphers
-        ?crt_file
-        ?key_file
         ?(verify_modes = [ Verify_mode.Verify_peer ])
         ctx
         version
@@ -186,22 +163,19 @@ module Connection = struct
         ~net_to_ssl
         ~ssl_to_net
     =
-    let connection =
-      create_exn
-        ~verify_modes
-        ?allowed_ciphers
-        ctx
-        version
-        `Client
-        ?hostname
-        nm
-        ~app_to_ssl
-        ~ssl_to_app
-        ~net_to_ssl
-        ~ssl_to_net
-    in
-    let%bind () = use_crt_and_key connection ?crt_file ?key_file in
-    return connection
+    create_exn
+      ~verify_modes
+      ?allowed_ciphers
+      ctx
+      version
+      `Client
+      ?hostname
+      nm
+      ~app_to_ssl
+      ~ssl_to_app
+      ~net_to_ssl
+      ~ssl_to_net
+    |> return
   ;;
 
   let create_server_exn
@@ -210,8 +184,6 @@ module Connection = struct
         ?allowed_ciphers
         ctx
         version
-        ~crt_file
-        ~key_file
         ~app_to_ssl
         ~ssl_to_app
         ~net_to_ssl
@@ -231,7 +203,6 @@ module Connection = struct
         ~net_to_ssl
         ~ssl_to_net
     in
-    let%bind () = use_crt_and_key connection ~crt_file ~key_file in
     Or_error.ok_exn (Ffi.Ssl.check_private_key connection.ssl);
     return connection
   ;;
@@ -552,26 +523,37 @@ module Session = struct
   let reuse t ~conn = Option.iter (Set_once.get t) ~f:(State.reuse ~conn)
 end
 
-(* Global SSL contexts for every needed (name, version, ca_file, ca_path, options)
+(* Global SSL contexts for every needed
+   (name, version, ca_file, ca_path, options, crt_file, key_file)
    tuple. This is cached so that the same SSL_CTX object can be reused later *)
 let context_exn =
-  Memo.general (fun (name, version, ca_file, ca_path, options) ->
+  Memo.general (fun (name, version, ca_file, ca_path, options, crt_file, key_file) ->
     let (module Ffi) = force ffi in
     let ctx = Ffi.Ssl_ctx.create_exn version in
-    match%map
-      match ca_file, ca_path with
-      | None, None -> return (Ok (Ffi.Ssl_ctx.set_default_verify_paths ctx))
-      | _, _ -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
-    with
-    | Error e ->
+    let error e =
       failwiths ~here:[%here] "Could not initialize ssl context" e [%sexp_of: Error.t]
+    in
+    match%bind
+      match crt_file, key_file with
+      | Some crt_file, Some key_file ->
+        Ffi.Ssl_ctx.use_certificate_chain_and_key_files ~crt_file ~key_file ctx
+      | _, _ -> return (Ok ())
+    with
+    | Error e -> error e
     | Ok () ->
-      let session_id_context =
-        Option.value name ~default:"default_session_id_context"
-      in
-      Ffi.Ssl_ctx.set_session_id_context ctx session_id_context;
-      Ffi.Ssl_ctx.set_options ctx options;
-      ctx)
+      (match%map
+         match ca_file, ca_path with
+         | None, None -> return (Ok (Ffi.Ssl_ctx.set_default_verify_paths ctx))
+         | _, _ -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
+       with
+       | Error e -> error e
+       | Ok () ->
+         let session_id_context =
+           Option.value name ~default:"default_session_id_context"
+         in
+         Ffi.Ssl_ctx.set_session_id_context ctx session_id_context;
+         Ffi.Ssl_ctx.set_options ctx options;
+         ctx))
 ;;
 
 let client
@@ -593,12 +575,12 @@ let client
       ()
   =
   Deferred.Or_error.try_with (fun () ->
-    let%bind context = context_exn (name, version, ca_file, ca_path, options) in
+    let%bind context =
+      context_exn (name, version, ca_file, ca_path, options, crt_file, key_file)
+    in
     Connection.create_client_exn
       ?hostname
       ?name
-      ?crt_file
-      ?key_file
       ?verify_modes
       ?allowed_ciphers
       context
@@ -635,13 +617,14 @@ let server
       ()
   =
   Deferred.Or_error.try_with (fun () ->
-    let%bind context = context_exn (name, version, ca_file, ca_path, options) in
+    let%bind context =
+      context_exn
+        (name, version, ca_file, ca_path, options, Some crt_file, Some key_file)
+    in
     Connection.create_server_exn
       ?name
       context
       version
-      ~crt_file
-      ~key_file
       ?verify_modes
       ?allowed_ciphers
       ~app_to_ssl

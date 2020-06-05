@@ -16,7 +16,7 @@ depends: [
   "core"
   "ppx_jane"
   "stdio"
-  "conf-openssl"
+  "conf-libssl"
   "ctypes"            {>= "0.16.0"}
   "ctypes-foreign"
   "dune"              {>= "2.0.0"}

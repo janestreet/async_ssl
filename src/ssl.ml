@@ -357,8 +357,7 @@ module Connection = struct
           Ok amount_read)
     with
     | Ok _ ->
-      if verbose
-      then Debug.amf [%here] "%s: END do_ssl_read. Got: %s" t.name !read_as_str;
+      if verbose then Debug.amf [%here] "%s: END do_ssl_read. Got: %s" t.name !read_as_str;
       Some !read_as_str
     | Error (`Stream_eof | `Session_closed) ->
       if verbose then Debug.amf [%here] "%s: END do_ssl_read. Stream closed." t.name;

@@ -141,8 +141,7 @@ module Ssl_ctx = struct
 
   let load_verify_locations ?ca_file ?ca_path ctx =
     match%bind
-      In_thread.run (fun () ->
-        Bindings.Ssl_ctx.load_verify_locations ctx ca_file ca_path)
+      In_thread.run (fun () -> Bindings.Ssl_ctx.load_verify_locations ctx ca_file ca_path)
     with
     (* Yep, 1 means success. *)
     | 1 -> Deferred.return (Or_error.return ())
@@ -150,8 +149,7 @@ module Ssl_ctx = struct
       Deferred.return
         (match ca_file, ca_path with
          | None, None -> Or_error.error_string "No CA files given."
-         | _ ->
-           Or_error.error "CA load error" (get_error_stack ()) [%sexp_of: string list])
+         | _ -> Or_error.error "CA load error" (get_error_stack ()) [%sexp_of: string list])
   ;;
 
   let set_default_verify_paths ctx =
@@ -188,9 +186,7 @@ module Ssl_ctx = struct
       In_thread.run (fun () -> try_certificate_chain_and_failover_to_asn1 ctx crt_file)
     with
     | 1 ->
-      (match%bind
-         In_thread.run (fun () -> try_both_private_key_formats ctx key_file)
-       with
+      (match%bind In_thread.run (fun () -> try_both_private_key_formats ctx key_file) with
        | 1 -> Deferred.Or_error.return ()
        | x -> error x)
     | x -> error x
@@ -551,9 +547,7 @@ module Ssl = struct
   ;;
 
   let set_cipher_list_exn t ciphers =
-    match
-      Bindings.Ssl.set_cipher_list t (String.concat ~sep:":" ("-ALL" :: ciphers))
-    with
+    match Bindings.Ssl.set_cipher_list t (String.concat ~sep:":" ("-ALL" :: ciphers)) with
     | 1 -> ()
     | 0 ->
       failwithf !"SSL_set_cipher_list error: %{sexp:string list}" (get_error_stack ()) ()

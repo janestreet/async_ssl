@@ -1,7 +1,6 @@
 open! Base
 
-[%%import
-  "config.h"]
+[%%import "config.h"]
 
 module Voidp (T : sig
     val name : string
@@ -117,13 +116,11 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let implemented name = foreign name Ctypes.(void @-> returning t)
     let helper name f = f name
 
-    [%%ifdef
-      JSC_TLS_method]
+    [%%ifdef JSC_TLS_method]
 
     let tls = helper "TLS_method" implemented
 
-    [%%elif
-      defined JSC_SSLv23_method]
+    [%%elif defined JSC_SSLv23_method]
 
     let tls = helper "SSLv23_method" implemented
 
@@ -135,8 +132,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
     let sslv23 = tls
 
-    [%%if
-      defined JSC_SSLv3_method]
+    [%%if defined JSC_SSLv3_method]
 
     let sslv3 = helper "SSLv3_method" implemented
 
@@ -145,9 +141,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let sslv3 = helper "SSLv3_method" dummy
 
     [%%endif]
-
-    [%%if
-      defined JSC_TLSv1_method]
+    [%%if defined JSC_TLSv1_method]
 
     let tlsv1 = helper "TLSv1_method" implemented
 
@@ -156,9 +150,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let tlsv1 = helper "TLSv1_method" dummy
 
     [%%endif]
-
-    [%%if
-      defined JSC_TLSv1_1_method]
+    [%%if defined JSC_TLSv1_1_method]
 
     let tlsv1_1 = helper "TLSv1_1_method" implemented
 
@@ -167,9 +159,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let tlsv1_1 = helper "TLSv1_1_method" dummy
 
     [%%endif]
-
-    [%%if
-      defined JSC_TLSv1_2_method]
+    [%%if defined JSC_TLSv1_2_method]
 
     let tlsv1_2 = helper "TLSv1_2_method" implemented
 
@@ -192,13 +182,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     foreign "ERR_error_string_n" Ctypes.(ulong @-> ptr char @-> int @-> returning void)
   ;;
 
-  let add_all_digests =
-    foreign "OpenSSL_add_all_digests" Ctypes.(void @-> returning void)
-  ;;
-
-  let add_all_ciphers =
-    foreign "OpenSSL_add_all_ciphers" Ctypes.(void @-> returning void)
-  ;;
+  let add_all_digests = foreign "OpenSSL_add_all_digests" Ctypes.(void @-> returning void)
+  let add_all_ciphers = foreign "OpenSSL_add_all_ciphers" Ctypes.(void @-> returning void)
 
   let add_ssl_algorithms =
     foreign "OpenSSL_add_ssl_algorithms" Ctypes.(void @-> returning void)
@@ -263,9 +248,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     ;;
 
     let use_certificate_chain_file =
-      foreign
-        "SSL_CTX_use_certificate_chain_file"
-        Ctypes.(t @-> string @-> returning int)
+      foreign "SSL_CTX_use_certificate_chain_file" Ctypes.(t @-> string @-> returning int)
     ;;
 
     let use_certificate_file =

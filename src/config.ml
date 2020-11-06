@@ -4,7 +4,7 @@ open! Import
 
 module Client = struct
   type t =
-    { remote_hostname : string
+    { remote_hostname : string option
     ; allowed_ciphers : [ `Secure | `Openssl_default | `Only of string list ]
     ; ca_file : string option
     ; ca_path : string option
@@ -14,6 +14,8 @@ module Client = struct
     ; tls_options : Opt.t list
     ; verify_modes : Verify_mode.t list
     ; verify_callback : Ssl.Connection.t -> unit Deferred.Or_error.t
+    ; session : (Ssl.Session.t[@sexp.opaque]) option
+    ; connection_name : string option
     }
   [@@deriving sexp_of, fields]
 
@@ -23,6 +25,8 @@ module Client = struct
         ?(allowed_ciphers = `Secure)
         ?crt_file
         ?key_file
+        ?session
+        ?connection_name
         ~remote_hostname
         ~ca_file
         ~ca_path
@@ -36,6 +40,8 @@ module Client = struct
       ~ca_path
       ~crt_file
       ~key_file
+      ~session
+      ~connection_name
       ~tls_version:Version.Tls
       ~tls_options
       ~verify_modes

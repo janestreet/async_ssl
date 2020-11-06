@@ -12,14 +12,16 @@ module Client : sig
     -> ?allowed_ciphers:[ `Secure | `Openssl_default | `Only of string list ]
     -> ?crt_file:string
     -> ?key_file:string
-    -> remote_hostname:string
+    -> ?session:Ssl.Session.t
+    -> ?connection_name:string
+    -> remote_hostname:string option
     -> ca_file:string option
     -> ca_path:string option
     -> verify_callback:(Ssl.Connection.t -> unit Deferred.Or_error.t)
     -> unit
     -> t
 
-  val remote_hostname : t -> string
+  val remote_hostname : t -> string option
   val allowed_ciphers : t -> [ `Secure | `Openssl_default | `Only of string list ]
 
   (** [ca_file] and [ca_path] may both be used, in which case [ca_file] is searched first,
@@ -33,6 +35,8 @@ module Client : sig
   val tls_options : t -> Opt.t list
   val verify_modes : t -> Verify_mode.t list
   val verify_callback : t -> Ssl.Connection.t -> unit Deferred.Or_error.t
+  val session : t -> Ssl.Session.t option
+  val connection_name : t -> string option
 end
 
 module Server : sig

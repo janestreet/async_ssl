@@ -264,6 +264,17 @@ module Connection = struct
      closed, we make sure to close its matching partner: app_to_ssl. *)
   let rec write_pending_to_net t =
     let (module Ffi) = force ffi in
+    let%bind () =
+      (* We need to pushback here to ensure that the [Bio.read] -> [Pipe.write] sequence
+         will be atomic. *)
+      if Pipe.is_closed t.ssl_to_net
+      then return ()
+      else if !For_testing.slow_down_io_to_exhibit_truncation_bugs
+      then (
+        let%bind () = Clock.after (Time.Span.of_sec 0.001) in
+        Pipe.pushback t.ssl_to_net)
+      else Pipe.pushback t.ssl_to_net
+    in
     if verbose then Debug.amf [%here] "%s: write_pending_to_net" t.name;
     let amount_read = Ffi.Bio.read t.wbio ~buf:(bptr t) ~len:(blen t) in
     if verbose then Debug.amf [%here] "%s:   amount_read: %i" t.name amount_read;
@@ -275,20 +286,19 @@ module Connection = struct
     then write_pending_to_net t
     else (
       let to_write = Bigstring.to_string ~len:amount_read t.bstr in
-      let%bind () =
-        if not (Pipe.is_closed t.ssl_to_net)
-        then (
-          if verbose then Debug.amf [%here] "%s: ssl_to_net <- '%s'" t.name to_write;
-          if !For_testing.slow_down_io_to_exhibit_truncation_bugs
-          then (
-            let%bind () = Clock.after (Time.Span.of_sec 0.001) in
-            Pipe.write t.ssl_to_net to_write)
-          else Pipe.write t.ssl_to_net to_write)
-        else (
-          if verbose then Debug.amf [%here] "%s: closing app_to_ssl" t.name;
-          Pipe.close_read t.app_to_ssl;
-          return ())
-      in
+      if not (Pipe.is_closed t.ssl_to_net)
+      then (
+        if verbose then Debug.amf [%here] "%s: ssl_to_net <- '%s'" t.name to_write;
+        (* Its possible for two copies of [write_pending_to_net] to run concurrently
+           during session teardown.
+           Using [write_without_pushback] ensures that this write is atomic with the
+           [Bio.read] above.
+           We use [Pipe.pushback] at the top of the loop to allow the remote
+           end of the connection to throttle us. *)
+        Pipe.write_without_pushback t.ssl_to_net to_write)
+      else (
+        if verbose then Debug.amf [%here] "%s: closing app_to_ssl" t.name;
+        Pipe.close_read t.app_to_ssl);
       write_pending_to_net t)
   ;;
 
@@ -465,7 +475,14 @@ module Connection = struct
   (* Close all pipes if exceptions leak out.  This will implicitly stop
      [run_reader_loop] and [run_writer_loop], since they'll just keep getting EOFs. *)
   let with_cleanup t ~f =
-    let%map result = Deferred.Or_error.try_with ~name:"ssl_pipe" f in
+    let%map result =
+      Deferred.Or_error.try_with
+        ~run:
+          `Schedule
+        ~rest:`Log
+        ~name:"ssl_pipe"
+        f
+    in
     Result.iter_error result ~f:(fun error ->
       if verbose
       then Debug.amf [%here] "%s: ERROR: %s" t.name (Error.to_string_hum error);
@@ -573,21 +590,24 @@ let client
       ~ssl_to_net
       ()
   =
-  Deferred.Or_error.try_with (fun () ->
-    let%bind context =
-      context_exn (name, version, ca_file, ca_path, options, crt_file, key_file)
-    in
-    Connection.create_client_exn
-      ?hostname
-      ?name
-      ?verify_modes
-      ?allowed_ciphers
-      context
-      version
-      ~app_to_ssl
-      ~ssl_to_app
-      ~net_to_ssl
-      ~ssl_to_net)
+  Deferred.Or_error.try_with
+    ~run:`Schedule
+    ~rest:`Log
+    (fun () ->
+       let%bind context =
+         context_exn (name, version, ca_file, ca_path, options, crt_file, key_file)
+       in
+       Connection.create_client_exn
+         ?hostname
+         ?name
+         ?verify_modes
+         ?allowed_ciphers
+         context
+         version
+         ~app_to_ssl
+         ~ssl_to_app
+         ~net_to_ssl
+         ~ssl_to_net)
   >>=? fun conn ->
   Option.iter session ~f:(Session.reuse ~conn);
   Connection.with_cleanup conn ~f:(fun () -> Connection.run_handshake conn)
@@ -615,21 +635,24 @@ let server
       ~ssl_to_net
       ()
   =
-  Deferred.Or_error.try_with (fun () ->
-    let%bind context =
-      context_exn
-        (name, version, ca_file, ca_path, options, Some crt_file, Some key_file)
-    in
-    Connection.create_server_exn
-      ?name
-      context
-      version
-      ?verify_modes
-      ?allowed_ciphers
-      ~app_to_ssl
-      ~ssl_to_app
-      ~net_to_ssl
-      ~ssl_to_net)
+  Deferred.Or_error.try_with
+    ~run:`Schedule
+    ~rest:`Log
+    (fun () ->
+       let%bind context =
+         context_exn
+           (name, version, ca_file, ca_path, options, Some crt_file, Some key_file)
+       in
+       Connection.create_server_exn
+         ?name
+         context
+         version
+         ?verify_modes
+         ?allowed_ciphers
+         ~app_to_ssl
+         ~ssl_to_app
+         ~net_to_ssl
+         ~ssl_to_net)
   >>=? fun conn ->
   Connection.with_cleanup conn ~f:(fun () -> Connection.run_handshake conn)
   >>=? fun () ->

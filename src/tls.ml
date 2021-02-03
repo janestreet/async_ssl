@@ -102,6 +102,7 @@ let wrap_connection
 let wrap_server_connection tls_settings outer_rd outer_wr ~f ~time_source =
   let ca_file = Config.Server.ca_file tls_settings in
   let ca_path = Config.Server.ca_path tls_settings in
+  let verify_modes = Config.Server.verify_modes tls_settings in
   let version = Config.Server.tls_version tls_settings in
   let options = Config.Server.tls_options tls_settings in
   let crt_file = Config.Server.crt_file tls_settings in
@@ -114,6 +115,7 @@ let wrap_server_connection tls_settings outer_rd outer_wr ~f ~time_source =
       (Ssl.server
          ?ca_file
          ?ca_path
+         ?verify_modes
          ~version
          ~options
          ~crt_file

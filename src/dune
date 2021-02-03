@@ -18,4 +18,4 @@
   (:include ../bindings/openssl-ccopt.sexp))
  (c_library_flags :standard (:include ../bindings/openssl-cclib.sexp))
  (libraries async core async_ssl_bindings ctypes.stubs ctypes)
- (preprocess (pps ppx_jane -allow-unannotated-ignores)))
+ (preprocess (pps ppx_jane)))

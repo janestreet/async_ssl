@@ -282,7 +282,8 @@ module Connection = struct
     then (
       if verbose then Debug.amf [%here] "%s: write_pending_to_net complete" t.name;
       return ())
-    else if amount_read = 0
+    else if
+      amount_read = 0
     then write_pending_to_net t
     else (
       let to_write = Bigstring.to_string ~len:amount_read t.bstr in

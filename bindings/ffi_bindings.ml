@@ -47,11 +47,86 @@ module Tmp_rsa_callback =
 
 module Types (F : Cstubs.Types.TYPE) = struct
   module Ssl_op = struct
+    (*$
+      open Core
+
+      ;;
+      List.iter
+        [ "SSL_OP_NO_SSLv2"
+        ; "SSL_OP_NO_SSLv3"
+        ; "SSL_OP_NO_TLSv1"
+        ; "SSL_OP_NO_TLSv1_1"
+        ; "SSL_OP_NO_TLSv1_2"
+        ; "SSL_OP_NO_TLSv1_3"
+        ]
+        ~f:(fun c_sym ->
+          let ml_sym =
+            String.chop_prefix_exn c_sym ~prefix:"SSL_OP_" |> String.lowercase
+          in
+          let fallback = "Unsigned.ULong.zero" in
+          print_endline
+            [%string
+              {|
+    [%%if defined JSC_%{c_sym}]
+    let %{ml_sym} = F.constant "%{c_sym}" F.ulong
+    [%%else]
+    let %{ml_sym} = %{fallback}
+    [%%endif] |}])
+    *)
+    [%%if defined JSC_SSL_OP_NO_SSLv2]
+
     let no_sslv2 = F.constant "SSL_OP_NO_SSLv2" F.ulong
+
+    [%%else]
+
+    let no_sslv2 = Unsigned.ULong.zero
+
+    [%%endif]
+    [%%if defined JSC_SSL_OP_NO_SSLv3]
+
     let no_sslv3 = F.constant "SSL_OP_NO_SSLv3" F.ulong
+
+    [%%else]
+
+    let no_sslv3 = Unsigned.ULong.zero
+
+    [%%endif]
+    [%%if defined JSC_SSL_OP_NO_TLSv1]
+
     let no_tlsv1 = F.constant "SSL_OP_NO_TLSv1" F.ulong
+
+    [%%else]
+
+    let no_tlsv1 = Unsigned.ULong.zero
+
+    [%%endif]
+    [%%if defined JSC_SSL_OP_NO_TLSv1_1]
+
     let no_tlsv1_1 = F.constant "SSL_OP_NO_TLSv1_1" F.ulong
+
+    [%%else]
+
+    let no_tlsv1_1 = Unsigned.ULong.zero
+
+    [%%endif]
+    [%%if defined JSC_SSL_OP_NO_TLSv1_2]
+
     let no_tlsv1_2 = F.constant "SSL_OP_NO_TLSv1_2" F.ulong
+
+    [%%else]
+
+    let no_tlsv1_2 = Unsigned.ULong.zero
+
+    [%%endif]
+    [%%if defined JSC_SSL_OP_NO_TLSv1_3]
+
+    let no_tlsv1_3 = F.constant "SSL_OP_NO_TLSv1_3" F.ulong
+
+    [%%else]
+
+    let no_tlsv1_3 = Unsigned.ULong.zero
+
+    [%%endif] (*$*)
   end
 
   module Verify_mode = struct
@@ -116,22 +191,55 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let implemented name = foreign name Ctypes.(void @-> returning t)
     let helper name f = f name
 
-    [%%ifdef JSC_TLS_method]
+    (*$
+      open Core
 
-    let tls = helper "TLS_method" implemented
+      ;;
+      List.iter
+        [ "SSLv23_method"
+        ; "TLS_method"
+        ; "SSLv3_method"
+        ; "TLSv1_method"
+        ; "TLSv1_1_method"
+        ; "TLSv1_2_method"
+        ; "TLSv1_3_method"
+        ]
+        ~f:(fun c_sym ->
+          let ml_sym =
+            String.chop_suffix_exn c_sym ~suffix:"_method" |> String.lowercase
+          in
+          let fallback =
+            if String.equal c_sym "TLS_method"
+            then "sslv23"
+            else [%string {|helper "%{c_sym}" dummy|}]
+          in
+          print_endline
+            [%string
+              {|
+    [%%if defined JSC_%{c_sym}]
+    let %{ml_sym} = helper "%{c_sym}" implemented
+    [%%else]
+    let %{ml_sym} = %{fallback}
+    [%%endif] |}])
+    *)
+    [%%if defined JSC_SSLv23_method]
 
-    [%%elif defined JSC_SSLv23_method]
-
-    let tls = helper "SSLv23_method" implemented
+    let sslv23 = helper "SSLv23_method" implemented
 
     [%%else]
 
-    let tls = helper "TLS_method" dummy
+    let sslv23 = helper "SSLv23_method" dummy
 
     [%%endif]
+    [%%if defined JSC_TLS_method]
 
-    let sslv23 = tls
+    let tls = helper "TLS_method" implemented
 
+    [%%else]
+
+    let tls = sslv23
+
+    [%%endif]
     [%%if defined JSC_SSLv3_method]
 
     let sslv3 = helper "SSLv3_method" implemented
@@ -168,6 +276,17 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let tlsv1_2 = helper "TLSv1_2_method" dummy
 
     [%%endif]
+    [%%if defined JSC_TLSv1_3_method]
+
+    let tlsv1_3 = helper "TLSv1_3_method" implemented
+
+    [%%else]
+
+    let tlsv1_3 = helper "TLSv1_3_method" dummy
+
+    [%%endif]
+
+    (*$*)
 
     (* SSLv2 isn't secure, so we don't use it.  If you really really really need it, use
        SSLv23 which will at least try to upgrade the security whenever possible.

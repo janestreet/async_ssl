@@ -53,12 +53,12 @@ module Server = struct
         and crt_file =
           flag
             "-crt"
-            (optional_with_default crt_file Filename.arg_type)
+            (optional_with_default crt_file Filename_unix.arg_type)
             ~doc:"CERTIFICATE pem file with certificate"
         and key_file =
           flag
             "-key"
-            (optional_with_default key_file Filename.arg_type)
+            (optional_with_default key_file Filename_unix.arg_type)
             ~doc:"KEY pem file with key"
         in
         let allowed_ciphers =
@@ -161,4 +161,4 @@ let command =
     [ "server", Server.command; "client", Client.command ]
 ;;
 
-let () = Command.run command
+let () = Command_unix.run command

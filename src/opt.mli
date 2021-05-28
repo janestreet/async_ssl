@@ -18,6 +18,7 @@ type t =
   | No_tlsv1
   | No_tlsv1_1
   | No_tlsv1_2
+  | No_tlsv1_3
 [@@deriving sexp, compare]
 
 val default : t list

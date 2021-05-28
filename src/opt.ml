@@ -7,6 +7,7 @@ type t =
   | No_tlsv1
   | No_tlsv1_1
   | No_tlsv1_2
+  | No_tlsv1_3
 [@@deriving sexp, compare]
 
 let default = [ No_sslv2; No_sslv3; No_tlsv1; No_tlsv1_1 ]

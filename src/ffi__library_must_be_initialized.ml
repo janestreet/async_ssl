@@ -94,6 +94,7 @@ module Ssl_ctx = struct
       | V.Tlsv1 -> Ssl_method.tlsv1 ()
       | V.Tlsv1_1 -> Ssl_method.tlsv1_1 ()
       | V.Tlsv1_2 -> Ssl_method.tlsv1_2 ()
+      | V.Tlsv1_3 -> Ssl_method.tlsv1_3 ()
     in
     match Bindings.Ssl_ctx.new_ ver_method with
     | None -> failwith "Could not allocate a new SSL context."
@@ -113,6 +114,7 @@ module Ssl_ctx = struct
           | O.No_tlsv1 -> Types.Ssl_op.no_tlsv1
           | O.No_tlsv1_1 -> Types.Ssl_op.no_tlsv1_1
           | O.No_tlsv1_2 -> Types.Ssl_op.no_tlsv1_2
+          | O.No_tlsv1_3 -> Types.Ssl_op.no_tlsv1_3
         in
         Unsigned.ULong.logor acc o)
     in
@@ -391,6 +393,7 @@ module Ssl = struct
       | Tlsv1 -> Ssl_method.tlsv1 ()
       | Tlsv1_1 -> Ssl_method.tlsv1_1 ()
       | Tlsv1_2 -> Ssl_method.tlsv1_2 ()
+      | Tlsv1_3 -> Ssl_method.tlsv1_3 ()
     in
     match Bindings.Ssl.set_method t version_method with
     | 1 -> ()

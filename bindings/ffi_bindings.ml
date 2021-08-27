@@ -48,9 +48,8 @@ module Tmp_rsa_callback =
 module Types (F : Cstubs.Types.TYPE) = struct
   module Ssl_op = struct
     (*$
-      open Core
+      open Core;;
 
-      ;;
       List.iter
         [ "SSL_OP_NO_SSLv2"
         ; "SSL_OP_NO_SSLv3"
@@ -126,7 +125,8 @@ module Types (F : Cstubs.Types.TYPE) = struct
 
     let no_tlsv1_3 = Unsigned.ULong.zero
 
-    [%%endif] (*$*)
+    [%%endif]
+    (*$*)
   end
 
   module Verify_mode = struct
@@ -192,9 +192,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let helper name f = f name
 
     (*$
-      open Core
+      open Core;;
 
-      ;;
       List.iter
         [ "SSLv23_method"
         ; "TLS_method"
@@ -285,7 +284,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let tlsv1_3 = helper "TLSv1_3_method" dummy
 
     [%%endif]
-
     (*$*)
 
     (* SSLv2 isn't secure, so we don't use it.  If you really really really need it, use

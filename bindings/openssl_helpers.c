@@ -63,7 +63,11 @@ char **async_ssl__subject_alt_names(const X509 *cert) {
             }
         }
 
+#if OPENSSL_VERSION_NUMBER > 0x1010000fL
+        cstr = (unsigned char *) ASN1_STRING_get0_data(gen->d.dNSName);
+#else
         cstr = ASN1_STRING_data(gen->d.dNSName);
+#endif
         cstr_len = ASN1_STRING_length(gen->d.dNSName);
         if ((names[idx] = malloc((cstr_len + 1) * sizeof(char))) == NULL) {
             async_ssl__free_subject_alt_names(names);

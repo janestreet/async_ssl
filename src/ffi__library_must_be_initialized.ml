@@ -401,7 +401,6 @@ module Ssl = struct
   ;;
 
   let get_connect_accept_error ssl ~retval =
-    let module E = Ssl_error in
     if retval = 1
     then Ok ()
     else if retval <= 0
@@ -419,7 +418,6 @@ module Ssl = struct
   ;;
 
   let get_read_write_error ssl ~retval =
-    let module E = Ssl_error in
     if retval > 0
     then Ok retval
     else (

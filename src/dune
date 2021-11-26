@@ -17,5 +17,5 @@
  (c_flags (:standard \ -Werror -pedantic -Wall -Wunused) -w
   (:include ../bindings/openssl-ccopt.sexp))
  (c_library_flags :standard (:include ../bindings/openssl-cclib.sexp))
- (libraries async core_kernel.core async_ssl_bindings ctypes.stubs ctypes)
+ (libraries async core async_ssl_bindings ctypes.stubs ctypes)
  (preprocess (pps ppx_jane)))

@@ -174,12 +174,12 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   (* Some systems with older OpenSSL don't support TLS 1.1 and 1.2.
      https://github.com/janestreet/async_ssl/issues/3
 
-     This was originally solved by using [Ctypes_foreign_threaded.Foreign.foreign ~stub:true].
+     This was originally solved by using [Ctypes_foreign.Foreign.foreign ~stub:true].
      We now detect available symbols at compile time.
 
      Bindings are uniformly using stubs (no libffi dependency).
 
-     Note: using [Ctypes_foreign_threaded.Foreign.foreign ~stub:true] was failing (segfault)
+     Note: using [Ctypes_foreign.Foreign.foreign ~stub:true] was failing (segfault)
      with 32bit build on 64bit host.
   *)
   module Ssl_method = struct

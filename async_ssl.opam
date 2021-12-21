@@ -17,7 +17,7 @@ depends: [
   "ppx_jane"
   "stdio"
   "conf-libssl"
-  "ctypes"            {>= "0.16.0" & < "0.18.0"}
+  "ctypes"            {>= "0.18.0"}
   "ctypes-foreign"
   "dune"              {>= "2.0.0"}
   "dune-configurator"

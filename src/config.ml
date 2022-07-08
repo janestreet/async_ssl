@@ -16,6 +16,7 @@ module Client = struct
     ; verify_callback : Ssl.Connection.t -> unit Deferred.Or_error.t
     ; session : (Ssl.Session.t[@sexp.opaque]) option
     ; connection_name : string option
+    ; override_security_level : (Ssl.Override_security_level.t[@sexp.opaque]) option
     }
   [@@deriving sexp_of, fields]
 
@@ -27,6 +28,7 @@ module Client = struct
         ?key_file
         ?session
         ?connection_name
+        ?override_security_level
         ~remote_hostname
         ~ca_file
         ~ca_path
@@ -46,6 +48,7 @@ module Client = struct
       ~tls_options
       ~verify_modes
       ~verify_callback
+      ~override_security_level
   ;;
 end
 
@@ -59,6 +62,7 @@ module Server = struct
     ; tls_version : Version.t
     ; tls_options : Opt.t list
     ; verify_modes : Verify_mode.t list option
+    ; override_security_level : (Ssl.Override_security_level.t[@sexp.opaque]) option
     }
   [@@deriving sexp_of, fields]
 
@@ -66,6 +70,7 @@ module Server = struct
         ?verify_modes
         ?(tls_options = Opt.[ No_sslv2; No_sslv3; No_tlsv1; No_tlsv1_1 ])
         ?(allowed_ciphers = `Secure)
+        ?override_security_level
         ~crt_file
         ~key_file
         ~ca_file
@@ -81,5 +86,6 @@ module Server = struct
       ~key_file
       ~tls_version:Version.Tls
       ~tls_options
+      ~override_security_level
   ;;
 end

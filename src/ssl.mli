@@ -24,6 +24,7 @@ module Certificate : sig
 
   val subject : t -> (string * string) list
   val subject_alt_names : t -> string list
+  val fingerprint : t -> [ `SHA1 ] -> string
 end
 
 module Session : sig
@@ -57,8 +58,27 @@ module Connection : sig
   (* None if the other side sent us no certificate, Error if validation failed. *)
 
   val peer_certificate : t -> Certificate.t Or_error.t option
+  val peer_certificate_fingerprint : t -> [ `SHA1 ] -> string option
   val pem_peer_certificate_chain : t -> string option
+
+  (** Check if this TLS1.2 session was reused. This doesn't work for TLS1.3 and newer. *)
   val session_reused : t -> bool
+end
+
+module Override_security_level : sig
+  type t
+
+  (** OpenSSL 1.1 changed the default security level and now disallows many known weak
+      ciphers and signature algorithms. A commonly observed failure mode is RSA keys of
+      insufficient length (e.g. 1024 bits). This may break some applications.
+
+      We expose this flag as a break glass work around until the problematic certificates
+      can be updated. *)
+  val insecure_do_not_use : unit -> t
+  [@@alert
+    flawed_security
+      "Only use this as a last resort stop gap until you can get the problematic \
+       certificates re-issued."]
 end
 
 
@@ -163,6 +183,9 @@ val client
       this to [Verify_none]. *)
   -> ?verify_modes:Verify_mode.t list
   -> ?session:Session.t
+  (** Break glass if you are stuck using a certificate/encryption that openssl considers
+      insecure. Only set this in exceptional circumstances. *)
+  -> ?override_security_level:Override_security_level.t
   -> app_to_ssl:string Pipe.Reader.t
   -> ssl_to_app:string Pipe.Writer.t
   -> net_to_ssl:string Pipe.Reader.t
@@ -179,12 +202,15 @@ val server
   -> ?allowed_ciphers:[ `Secure | `Openssl_default | `Only of string list ]
   -> ?ca_file:string
   -> ?ca_path:string
-  -> crt_file:string
-  -> key_file:string
   (** Use [verify_modes] to control what verification SSL does as part of the handshake.
       The default for servers is [Verify_none], meaning no client certificate request is
       sent to the client. *)
   -> ?verify_modes:Verify_mode.t list
+  (** Break glass if you are stuck using a certificate/encryption that openssl considers
+      insecure. Only set this in exceptional circumstances. *)
+  -> ?override_security_level:Override_security_level.t
+  -> crt_file:string
+  -> key_file:string
   -> app_to_ssl:string Pipe.Reader.t
   -> ssl_to_app:string Pipe.Writer.t
   -> net_to_ssl:string Pipe.Reader.t

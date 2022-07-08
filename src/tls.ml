@@ -57,6 +57,14 @@ let reader_writer_of_pipes ~app_rd ~app_wr =
 
 let call_handler_and_cleanup ~outer_rd:_ ~outer_wr ~inner_rd ~inner_wr f =
   Monitor.protect f ~run:`Now ~rest:`Log ~finally:(fun () ->
+    (* Wait for writes to flush (or fail) before attempting to close writer. Without this,
+       when flushing takes longer than 5 seconds, the writer is force-closed and
+       application data is truncated.
+
+       Adding this wait is preferable to setting [Writer.close ~force_close] to ensure
+       we never leak file descriptors.
+    *)
+    let%bind () = Writer.flushed_or_failed_unit inner_wr in
     (* Close writer before reader in-case they share the underlying FD *)
     let%bind () = Writer.close inner_wr in
     Deferred.all_unit
@@ -108,6 +116,7 @@ let wrap_server_connection tls_settings outer_rd outer_wr ~f ~time_source =
   let crt_file = Config.Server.crt_file tls_settings in
   let key_file = Config.Server.key_file tls_settings in
   let allowed_ciphers = Config.Server.allowed_ciphers tls_settings in
+  let override_security_level = Config.Server.override_security_level tls_settings in
   wrap_connection
     outer_rd
     outer_wr
@@ -116,6 +125,7 @@ let wrap_server_connection tls_settings outer_rd outer_wr ~f ~time_source =
          ?ca_file
          ?ca_path
          ?verify_modes
+         ?override_security_level
          ~version
          ~options
          ~crt_file
@@ -134,6 +144,7 @@ let listen
       ?backlog
       ?buffer_age_limit
       ?advance_clock_before_tls_negotiation
+      ?socket
       tls_settings
       where_to_listen
       ~on_handler_error
@@ -143,6 +154,7 @@ let listen
     ?max_connections
     ?backlog
     ?buffer_age_limit
+    ?socket
     ~on_handler_error
     where_to_listen
     (fun sock r w ->
@@ -169,6 +181,7 @@ let wrap_client_connection ?timeout tls_settings outer_rd outer_wr ~f =
   let verify_callback = Config.Client.verify_callback tls_settings in
   let session = Config.Client.session tls_settings in
   let connection_name = Config.Client.connection_name tls_settings in
+  let override_security_level = Config.Client.override_security_level tls_settings in
   wrap_connection
     ?timeout
     ~negotiate:
@@ -180,6 +193,7 @@ let wrap_client_connection ?timeout tls_settings outer_rd outer_wr ~f =
          ?hostname
          ?session
          ?name:connection_name
+         ?override_security_level
          ~verify_modes
          ~allowed_ciphers
          ~version

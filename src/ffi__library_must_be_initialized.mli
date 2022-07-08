@@ -34,6 +34,12 @@ module Ssl_ctx : sig
   (** Initialize a new SSL context, out of which all SSL connections are allocated. *)
   val create_exn : Version.t -> t
 
+  (** Set OpenSSL Security level, see [man SSL_CTX_set_security_level].
+      0 - is weakest/no security
+      5 - is highest security,
+      Default depends on System/OpenSSL version. *)
+  val override_default_insecure__set_security_level : t -> int -> unit
+
   (** Set options on the SSL context, see [Opt] for available options.  Currently used for
       disabling protocol versions. *)
   val set_options : t -> Opt.t list -> unit
@@ -148,6 +154,7 @@ module X509 : sig
 
   val get_subject_name : t -> X509_name.t
   val get_subject_alt_names : t -> string list
+  val fingerprint : t -> [ `SHA1 ] -> string
 end
 
 module Ssl_session : sig
@@ -215,6 +222,7 @@ module Ssl : sig
   val check_private_key : t -> unit Or_error.t
   val set_verify : t -> Verify_mode.t list -> unit
   val get_peer_certificate : t -> X509.t option
+  val get_peer_certificate_fingerprint : t -> [ `SHA1 ] -> string option
 
   (* Returns Ok () if there is no peer certificate. *)
 

@@ -43,6 +43,21 @@ module Certificate = struct
     let (module Ffi) = force ffi in
     Ffi.X509.get_subject_alt_names t
   ;;
+
+  let fingerprint t algo =
+    let (module Ffi) = force ffi in
+    Ffi.X509.fingerprint t algo
+  ;;
+end
+
+module Override_security_level = struct
+  type t = int
+
+  (* Everything is permitted. This retains compatibility with previous versions of OpenSSL *)
+  let insecure_do_not_use () =
+    (* See [man SSL_CTX_set_security_level]. *)
+    0
+  ;;
 end
 
 module Connection = struct
@@ -234,6 +249,11 @@ module Connection = struct
        | Error e -> Some (Error e))
   ;;
 
+  let peer_certificate_fingerprint t algo =
+    let (module Ffi) = force ffi in
+    Ffi.Ssl.get_peer_certificate_fingerprint t.ssl algo
+  ;;
+
   let pem_peer_certificate_chain t =
     let (module Ffi) = force ffi in
     Ffi.Ssl.get_peer_certificate_chain t.ssl
@@ -271,7 +291,7 @@ module Connection = struct
       then return ()
       else if !For_testing.slow_down_io_to_exhibit_truncation_bugs
       then (
-        let%bind () = Clock.after (Time.Span.of_sec 0.001) in
+        let%bind () = Clock.after (Time_float.Span.of_sec 0.001) in
         Pipe.pushback t.ssl_to_net)
       else Pipe.pushback t.ssl_to_net
     in
@@ -477,8 +497,7 @@ module Connection = struct
   let with_cleanup t ~f =
     let%map result =
       Deferred.Or_error.try_with
-        ~run:
-          `Schedule
+        ~run:`Schedule
         ~rest:`Log
         ~name:"ssl_pipe"
         f
@@ -543,33 +562,46 @@ end
    (name, version, ca_file, ca_path, options, crt_file, key_file)
    tuple. This is cached so that the same SSL_CTX object can be reused later *)
 let context_exn =
-  Memo.general (fun (name, version, ca_file, ca_path, options, crt_file, key_file) ->
-    let (module Ffi) = force ffi in
-    let ctx = Ffi.Ssl_ctx.create_exn version in
-    let error e =
-      failwiths ~here:[%here] "Could not initialize ssl context" e [%sexp_of: Error.t]
-    in
-    match%bind
-      match crt_file, key_file with
-      | Some crt_file, Some key_file ->
-        Ffi.Ssl_ctx.use_certificate_chain_and_key_files ~crt_file ~key_file ctx
-      | _, _ -> return (Ok ())
-    with
-    | Error e -> error e
-    | Ok () ->
-      (match%map
-         match ca_file, ca_path with
-         | None, None -> return (Ok (Ffi.Ssl_ctx.set_default_verify_paths ctx))
-         | _, _ -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
-       with
-       | Error e -> error e
-       | Ok () ->
-         let session_id_context =
-           Option.value name ~default:"default_session_id_context"
-         in
-         Ffi.Ssl_ctx.set_session_id_context ctx session_id_context;
-         Ffi.Ssl_ctx.set_options ctx options;
-         ctx))
+  Memo.general
+    (fun
+      ( name
+      , version
+      , ca_file
+      , ca_path
+      , options
+      , crt_file
+      , key_file
+      , override_security_level )
+      ->
+        let (module Ffi) = force ffi in
+        let ctx = Ffi.Ssl_ctx.create_exn version in
+        let error e =
+          failwiths ~here:[%here] "Could not initialize ssl context" e [%sexp_of: Error.t]
+        in
+        Option.iter
+          override_security_level
+          ~f:(Ffi.Ssl_ctx.override_default_insecure__set_security_level ctx);
+        match%bind
+          match crt_file, key_file with
+          | Some crt_file, Some key_file ->
+            Ffi.Ssl_ctx.use_certificate_chain_and_key_files ~crt_file ~key_file ctx
+          | _, _ -> return (Ok ())
+        with
+        | Error e -> error e
+        | Ok () ->
+          (match%map
+             match ca_file, ca_path with
+             | None, None -> return (Ok (Ffi.Ssl_ctx.set_default_verify_paths ctx))
+             | _, _ -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
+           with
+           | Error e -> error e
+           | Ok () ->
+             let session_id_context =
+               Option.value name ~default:"default_session_id_context"
+             in
+             Ffi.Ssl_ctx.set_session_id_context ctx session_id_context;
+             Ffi.Ssl_ctx.set_options ctx options;
+             ctx))
 ;;
 
 let client
@@ -584,6 +616,7 @@ let client
       ?key_file
       ?verify_modes
       ?session
+      ?override_security_level
       ~app_to_ssl
       ~ssl_to_app
       ~net_to_ssl
@@ -595,7 +628,15 @@ let client
     ~rest:`Log
     (fun () ->
        let%bind context =
-         context_exn (name, version, ca_file, ca_path, options, crt_file, key_file)
+         context_exn
+           ( name
+           , version
+           , ca_file
+           , ca_path
+           , options
+           , crt_file
+           , key_file
+           , override_security_level )
        in
        Connection.create_client_exn
          ?hostname
@@ -626,9 +667,10 @@ let server
       ?allowed_ciphers
       ?ca_file
       ?ca_path
+      ?verify_modes
+      ?override_security_level
       ~crt_file
       ~key_file
-      ?verify_modes
       ~app_to_ssl
       ~ssl_to_app
       ~net_to_ssl
@@ -641,7 +683,14 @@ let server
     (fun () ->
        let%bind context =
          context_exn
-           (name, version, ca_file, ca_path, options, Some crt_file, Some key_file)
+           ( name
+           , version
+           , ca_file
+           , ca_path
+           , options
+           , Some crt_file
+           , Some key_file
+           , override_security_level )
        in
        Connection.create_server_exn
          ?name
@@ -703,8 +752,8 @@ let%test_module _ =
       let session = Session.create () in
       let check_version conn =
         (* Since Version.default is [Sslv23], we expect to negotiate the highest allowed
-           protocol version, which is [Tlsv1_2] *)
-        [%test_result: Version.t] (Connection.version conn) ~expect:Version.Tlsv1_2
+           protocol version, which is [Tlsv1_3] *)
+        [%test_result: Version.t] (Connection.version conn) ~expect:Version.Tlsv1_3
       in
       let check_session_reused conn ~expect =
         [%test_result: bool] (Connection.session_reused conn) ~expect
@@ -727,8 +776,7 @@ let%test_module _ =
           (* attach the server to ssl 2 to net *)
           let server_conn =
             server
-              ~name:
-                "server"
+              ~name:"server"
               (* It might be confusing that the two "don't_use_in_production"
                  files are used for different purposes. This is enough to test out
                  the functionality, but if we want to be super clear we need 5
@@ -825,7 +873,7 @@ let%test_module _ =
         if verbose then Debug.amf [%here] "first run";
         let%bind () = run_test ~expect_session_reused:false in
         if verbose then Debug.amf [%here] "second run";
-        run_test ~expect_session_reused:true
+        run_test ~expect_session_reused:false
       in
       Thread_safe.block_on_async_exn run_twice
     ;;

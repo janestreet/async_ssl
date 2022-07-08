@@ -157,6 +157,10 @@ module Types (F : Cstubs.Types.TYPE) = struct
     let pem = F.constant "X509_FILETYPE_PEM" F.int
     let asn1 = F.constant "X509_FILETYPE_ASN1" F.int
   end
+
+  module Evp = struct
+    let max_md_size = F.constant "EVP_MAX_MD_SIZE" F.int
+  end
 end
 
 module Bindings (F : Cstubs.FOREIGN) = struct
@@ -340,6 +344,10 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let new_ = foreign "SSL_CTX_new" Ctypes.(Ssl_method.t @-> returning t_opt)
     let free = foreign "SSL_CTX_free" Ctypes.(t @-> returning void)
 
+    let override_default_insecure__set_security_level =
+      foreign "SSL_CTX_set_security_level" Ctypes.(t @-> int @-> returning void)
+    ;;
+
     let load_verify_locations =
       foreign
         "SSL_CTX_load_verify_locations"
@@ -454,6 +462,14 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     ;;
   end
 
+  module EVP = struct
+    include Voidp (struct
+        let name = "EVP"
+      end)
+
+    let sha1 = foreign "EVP_sha1" Ctypes.(void @-> returning t)
+  end
+
   module X509 = struct
     include Voidp (struct
         let name = "X509"
@@ -481,6 +497,12 @@ module Bindings (F : Cstubs.FOREIGN) = struct
       foreign
         "async_ssl__free_subject_alt_names"
         Ctypes.(ptr (ptr_opt char) @-> returning void)
+    ;;
+
+    let digest =
+      foreign
+        "X509_digest"
+        Ctypes.(t @-> EVP.t @-> ptr char @-> ptr int @-> returning bool)
     ;;
   end
 

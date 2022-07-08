@@ -103,6 +103,10 @@ module Ssl_ctx = struct
       p
   ;;
 
+  let override_default_insecure__set_security_level t level =
+    Bindings.Ssl_ctx.override_default_insecure__set_security_level t level
+  ;;
+
   let set_options context options =
     let opts =
       List.fold options ~init:Unsigned.ULong.zero ~f:(fun acc opt ->
@@ -273,6 +277,19 @@ module X509 = struct
           in
           loop [] results_p_p)
         ~finally:(fun () -> Bindings.X509.free_subject_alt_names results_p_p)
+  ;;
+
+  let fingerprint t algo =
+    let open Ctypes in
+    let buf = allocate_n char ~count:Types.Evp.max_md_size in
+    let len = allocate int 0 in
+    let algo =
+      match algo with
+      | `SHA1 -> Bindings.EVP.sha1 ()
+    in
+    if Bindings.X509.digest t algo buf len
+    then Ctypes.string_from_ptr buf ~length:!@len
+    else raise_s [%message "Failed to compute digest"]
   ;;
 end
 
@@ -478,6 +495,13 @@ module Ssl = struct
     cert
   ;;
 
+  let get_peer_certificate_fingerprint t algo =
+    Option.map (Bindings.Ssl.get_peer_certificate t) ~f:(fun cert ->
+      protect
+        ~f:(fun () -> X509.fingerprint cert algo)
+        ~finally:(fun () -> Bindings.X509.free cert))
+  ;;
+
   let get_verify_result t =
     let result = Bindings.Ssl.get_verify_result t in
     if result = Types.Verify_result.ok
@@ -497,6 +521,7 @@ module Ssl = struct
     | "TLSv1" -> Tlsv1
     | "TLSv1.1" -> Tlsv1_1
     | "TLSv1.2" -> Tlsv1_2
+    | "TLSv1.3" -> Tlsv1_3
     | "unknown" ->
       failwith "SSL_get_version returned 'unknown', your session is not established"
     | s -> failwithf "bug: SSL_get_version returned %s" s ()

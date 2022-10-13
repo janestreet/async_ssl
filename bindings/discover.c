@@ -61,6 +61,8 @@ int main ( int argc, char **argv ) {
    ; "SSL_OP_NO_TLSv1_1"
    ; "SSL_OP_NO_TLSv1_2"
    ; "SSL_OP_NO_TLSv1_3"
+   ; "SSL_OP_SINGLE_DH_USE"
+   ; "SSL_OP_SINGLE_ECDH_USE"
    ] |> List.iter ~f:(fun sym -> print_endline [%string {|
    #ifdef %{sym}
      %{witness_defined sym}
@@ -157,6 +159,20 @@ int main ( int argc, char **argv ) {
      printf("#define JSC_SSL_OP_NO_TLSv1_3\n"); success++;
    #else
      printf("#undef JSC_SSL_OP_NO_TLSv1_3\n");
+   #endif
+   
+
+   #ifdef SSL_OP_SINGLE_DH_USE
+     printf("#define JSC_SSL_OP_SINGLE_DH_USE\n"); success++;
+   #else
+     printf("#undef JSC_SSL_OP_SINGLE_DH_USE\n");
+   #endif
+   
+
+   #ifdef SSL_OP_SINGLE_ECDH_USE
+     printf("#define JSC_SSL_OP_SINGLE_ECDH_USE\n"); success++;
+   #else
+     printf("#undef JSC_SSL_OP_SINGLE_ECDH_USE\n");
    #endif
    
 /*$*/

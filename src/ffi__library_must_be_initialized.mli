@@ -170,28 +170,6 @@ module Dh : sig
   val generate_parameters : prime_len:int -> generator:int -> unit -> t
 end
 
-module Ec_key : sig
-  module Curve : sig
-    type t [@@deriving sexp]
-
-    val to_string : t -> string
-    val of_string : string -> t
-    val secp384r1 : t
-    val secp521r1 : t
-    val prime256v1 : t
-  end
-
-  type t
-
-  val new_by_curve_name : Curve.t -> t
-end
-
-module Rsa : sig
-  type t
-
-  val generate_key : key_length:int -> exponent:int -> unit -> t
-end
-
 (* Represents an SSL connection. This follows the naming convention of libopenssl, but
    would perhaps better be named [Connection]. *)
 module Ssl : sig
@@ -237,17 +215,9 @@ module Ssl : sig
       This is really [SSL_set_cipher_list t (String.concat ~sep:":" ("-ALL" ::  ciphers))]. *)
 
   val set_cipher_list_exn : t -> string list -> unit
-
-  module Tmp_dh_callback : Foreign.Funptr with type fn = t -> bool -> int -> Dh.t
-
-  val set_tmp_dh_callback : t -> Tmp_dh_callback.t -> unit
-  val set_tmp_ecdh : t -> Ec_key.t -> unit
-
-  module Tmp_rsa_callback : Foreign.Funptr with type fn = t -> bool -> int -> Rsa.t
-
-  val set_tmp_rsa_callback : t -> Tmp_rsa_callback.t -> unit
   val get_cipher_list : t -> string list
   val get_peer_certificate_chain : t -> string option
+  val set1_groups_list_exn : t -> string list -> unit
 end
 
 (** Pops all errors off of the openssl error stack, returning them as a list of

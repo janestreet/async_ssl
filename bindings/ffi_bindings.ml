@@ -57,6 +57,8 @@ module Types (F : Cstubs.Types.TYPE) = struct
         ; "SSL_OP_NO_TLSv1_1"
         ; "SSL_OP_NO_TLSv1_2"
         ; "SSL_OP_NO_TLSv1_3"
+        ; "SSL_OP_SINGLE_DH_USE"
+        ; "SSL_OP_SINGLE_ECDH_USE"
         ]
         ~f:(fun c_sym ->
           let ml_sym =
@@ -124,6 +126,24 @@ module Types (F : Cstubs.Types.TYPE) = struct
     [%%else]
 
     let no_tlsv1_3 = Unsigned.ULong.zero
+
+    [%%endif]
+    [%%if defined JSC_SSL_OP_SINGLE_DH_USE]
+
+    let single_dh_use = F.constant "SSL_OP_SINGLE_DH_USE" F.ulong
+
+    [%%else]
+
+    let single_dh_use = Unsigned.ULong.zero
+
+    [%%endif]
+    [%%if defined JSC_SSL_OP_SINGLE_ECDH_USE]
+
+    let single_ecdh_use = F.constant "SSL_OP_SINGLE_ECDH_USE" F.ulong
+
+    [%%else]
+
+    let single_ecdh_use = Unsigned.ULong.zero
 
     [%%endif]
     (*$*)
@@ -558,30 +578,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     end
   end
 
-  module Ec_key = struct
-    include Voidp (struct
-        let name = "Ec_key"
-      end)
-
-    let new_by_curve_name =
-      foreign "EC_KEY_new_by_curve_name" Ctypes.(int @-> returning t_opt)
-    ;;
-
-    let free = foreign "EC_KEY_free" Ctypes.(t @-> returning void)
-  end
-
-  module Rsa = struct
-    include Rsa
-
-    let generate_key =
-      foreign
-        "RSA_generate_key"
-        Ctypes.(int @-> int @-> Progress_callback.t_opt @-> ptr void @-> returning t_opt)
-    ;;
-
-    let free = foreign "RSA_free" Ctypes.(t @-> returning void)
-  end
-
   module Ssl = struct
     include Ssl
 
@@ -614,24 +610,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
       foreign "SSL_get_cipher_list" Ctypes.(t @-> int @-> returning string_opt)
     ;;
 
-    module Tmp_dh_callback = Tmp_dh_callback
-
-    let set_tmp_dh_callback =
-      foreign
-        "SSL_set_tmp_dh_callback"
-        Ctypes.(t @-> Tmp_dh_callback.t @-> returning void)
-    ;;
-
-    let set_tmp_ecdh =
-      foreign "SSL_set_tmp_ecdh" Ctypes.(t @-> Ec_key.t @-> returning void)
-    ;;
-
-    module Tmp_rsa_callback = Tmp_rsa_callback
-
-    let set_tmp_rsa_callback =
-      foreign
-        "SSL_set_tmp_rsa_callback"
-        Ctypes.(t @-> Tmp_rsa_callback.t @-> returning void)
+    let set1_groups_list =
+      foreign "SSL_set1_groups_list" Ctypes.(t @-> string @-> returning int)
     ;;
 
     (* free with X509_free() (source: manpage of SSL_get_peer_certificate(3)) *)

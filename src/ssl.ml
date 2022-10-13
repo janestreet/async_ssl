@@ -22,6 +22,8 @@ let secure_ciphers =
   [ (* from: cipherli.st *) "EECDH+AESGCM"; "EDH+AESGCM"; "AES256+EECDH"; "AES256+EDH" ]
 ;;
 
+let presumably_secure_groups = [ "P-256"; "P-521"; "P-384"; "X25519"; "ffdhe2048" ]
+
 module Certificate = struct
   type t = Ffi__library_must_be_initialized.X509.t
 
@@ -82,38 +84,6 @@ module Connection = struct
     }
   [@@deriving sexp_of, fields]
 
-  let tmp_rsa =
-    let exponent = 65537 (* small random odd (prime?), e.g. 3, 17 or 65537 *) in
-    Memo.general ~hashable:Int.hashable (fun key_length ->
-      let (module Ffi) = force ffi in
-      Ffi.Rsa.generate_key ~key_length ~exponent ())
-  ;;
-
-  let tmp_ecdh =
-    lazy
-      (let (module Ffi) = force ffi in
-       let curve = Ffi.Ec_key.Curve.prime256v1 in
-       Ffi.Ec_key.new_by_curve_name curve)
-  ;;
-
-  let tmp_dh_callback =
-    lazy
-      (* To ensure that the underlying libffi closure is not released pre-maturely
-         we create (and never free) a [Foreign.dynamic_funptr] here.
-         This does not leak as only 2 callbacks are ever defined. *)
-      (let (module Ffi) = force ffi in
-       Ffi.Ssl.Tmp_dh_callback.of_fun (fun _t _is_export key_length ->
-         Rfc3526.modp key_length))
-  ;;
-
-  let tmp_rsa_callback =
-    lazy
-      (* Like [tmp_dh_callback]. *)
-      (let (module Ffi) = force ffi in
-       Ffi.Ssl.Tmp_rsa_callback.of_fun (fun _t _is_export key_length ->
-         tmp_rsa key_length))
-  ;;
-
   let create_exn
         ?verify_modes
         ?(allowed_ciphers = `Secure)
@@ -146,9 +116,8 @@ module Connection = struct
      | `Openssl_default -> ()
      | `Secure -> Ffi.Ssl.set_cipher_list_exn ssl secure_ciphers
      | `Only allowed_ciphers -> Ffi.Ssl.set_cipher_list_exn ssl allowed_ciphers);
-    Ffi.Ssl.set_tmp_dh_callback ssl (force tmp_dh_callback);
-    Ffi.Ssl.set_tmp_ecdh ssl (force tmp_ecdh);
-    (* Ffi.Ssl.set_tmp_rsa_callback ssl (force tmp_rsa_callback); *)
+    (* Configure EC and DH groups *)
+    Ffi.Ssl.set1_groups_list_exn ssl presumably_secure_groups;
     Ffi.Ssl.set_bio ssl ~input:rbio ~output:wbio;
     let closed = Ivar.create () in
     { ssl

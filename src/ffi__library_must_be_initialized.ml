@@ -474,7 +474,7 @@ module Ssl = struct
   ;;
 
   let set_hostflags t flags =
-    let flags = List.map flags ~f:X509_check_host.to_int |> List.fold ~init:0 ~f:Int.bit_or in
+    let flags = List.map flags ~f:X509_check_host.to_int |> List.fold ~init:(Unsigned.UInt.zero) ~f:Unsigned.UInt.logor in
     Bindings.Ssl.set_hostflags t flags
   ;;
 

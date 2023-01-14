@@ -183,12 +183,12 @@ module Types (F : Cstubs.Types.TYPE) = struct
   end
 
   module X509_check_host = struct
-    let always_check_subject = F.constant "X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT" F.int
-    let never_check_subject = F.constant "X509_CHECK_FLAG_NEVER_CHECK_SUBJECT" F.int
-    let no_wildcards = F.constant "X509_CHECK_FLAG_NO_WILDCARDS" F.int
-    let no_partial_wildcards = F.constant "X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS" F.int
-    let multi_label_wildcards = F.constant "X509_CHECK_FLAG_MULTI_LABEL_WILDCARDS" F.int
-    let single_label_subdomains = F.constant "X509_CHECK_FLAG_SINGLE_LABEL_SUBDOMAINS" F.int
+    let always_check_subject = F.constant "X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT" F.uint
+    let never_check_subject = F.constant "X509_CHECK_FLAG_NEVER_CHECK_SUBJECT" F.uint
+    let no_wildcards = F.constant "X509_CHECK_FLAG_NO_WILDCARDS" F.uint
+    let no_partial_wildcards = F.constant "X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS" F.uint
+    let multi_label_wildcards = F.constant "X509_CHECK_FLAG_MULTI_LABEL_WILDCARDS" F.uint
+    let single_label_subdomains = F.constant "X509_CHECK_FLAG_SINGLE_LABEL_SUBDOMAINS" F.uint
   end
 end
 
@@ -612,7 +612,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     ;;
 
     let set1_host = foreign "SSL_set1_host" Ctypes.(t @-> string @-> returning int)
-    let set_hostflags = foreign "SSL_set_hostflags" Ctypes.(t @-> int @-> returning void)
+    let set_hostflags = foreign "SSL_set_hostflags" Ctypes.(t @-> uint @-> returning void)
 
     let set_cipher_list =
       foreign "SSL_set_cipher_list" Ctypes.(t @-> string @-> returning int)

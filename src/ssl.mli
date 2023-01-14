@@ -9,6 +9,7 @@ open! Async
 module Version : module type of Version
 module Opt : module type of Opt
 module Verify_mode : module type of Verify_mode
+module X509_check_host : module type of X509_check_host
 
 val secure_ciphers : string list
 
@@ -147,6 +148,7 @@ val client
   :  ?version:Version.t
   -> ?options:Opt.t list
   -> ?name:string
+  -> ?host_validation_mode:X509_check_host.t list
   -> ?hostname:string
   (** Use [allowed_ciphers] to control which ciphers should be used.  See CIPHERS(1), and
       `openssl ciphers -v`.

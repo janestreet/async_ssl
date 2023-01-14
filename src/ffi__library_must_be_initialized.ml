@@ -257,6 +257,21 @@ module X509_name = struct
   let get_entry = Bindings.X509_name.get_entry
 end
 
+module X509_check_host = struct
+  include X509_check_host
+  
+  let to_int t =
+    let open Types.X509_check_host in
+    match t with
+    | AlwaysCheckSubject -> always_check_subject
+    | NeverCheckSubject -> never_check_subject
+    | NoWildcards -> no_wildcards
+    | NoPartialWildcards -> no_partial_wildcards
+    | MultiLabelWildcards -> multi_label_wildcards
+    | SingleLabelSubdomains -> single_label_subdomains
+  ;;
+end
+
 module X509 = struct
   type t = Bindings.X509.t
 
@@ -448,6 +463,19 @@ module Ssl = struct
   let set_verify t flags =
     let mode = List.map flags ~f:Verify_mode.to_int |> List.fold ~init:0 ~f:Int.bit_or in
     Bindings.Ssl.set_verify t mode Ctypes.null
+  ;;
+
+  let set1_host t host =
+    match Bindings.Ssl.set1_host t host with
+    | 1 -> ()
+    | 0 ->
+      failwithf !"SSL_set1_host error: %{sexp: string list}" (get_error_stack ()) ()
+    | n -> failwithf "OpenSSL bug: SSL_set1_host returned %d" n ()
+  ;;
+
+  let set_hostflags t flags =
+    let flags = List.map flags ~f:X509_check_host.to_int |> List.fold ~init:0 ~f:Int.bit_or in
+    Bindings.Ssl.set_hostflags t flags
   ;;
 
   let get_peer_certificate t =

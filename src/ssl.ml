@@ -5,6 +5,7 @@ open Import
 module Version = Version
 module Opt = Opt
 module Verify_mode = Verify_mode
+module X509_check_host = X509_check_host
 
 module For_testing = struct
   let slow_down_io_to_exhibit_truncation_bugs = ref false
@@ -90,6 +91,7 @@ module Connection = struct
         ctx
         version
         client_or_server
+        ?host_validation_mode
         ?hostname
         name
         ~app_to_ssl
@@ -112,6 +114,8 @@ module Connection = struct
        connection to the caller. The caller must be careful to check that the certificate
        verified correctly. To prevent mistakes, we've changed it to [Verify_peer]. *)
     Option.iter verify_modes ~f:(Ffi.Ssl.set_verify ssl);
+    Option.iter host_validation_mode ~f:(Ffi.Ssl.set_hostflags ssl);
+    Option.iter hostname ~f:(Ffi.Ssl.set1_host ssl);
     (match allowed_ciphers with
      | `Openssl_default -> ()
      | `Secure -> Ffi.Ssl.set_cipher_list_exn ssl secure_ciphers
@@ -136,6 +140,7 @@ module Connection = struct
   ;;
 
   let create_client_exn
+        ?host_validation_mode
         ?hostname
         ?name:(nm = "(anonymous)")
         ?allowed_ciphers
@@ -153,6 +158,7 @@ module Connection = struct
       ctx
       version
       `Client
+      ?host_validation_mode
       ?hostname
       nm
       ~app_to_ssl
@@ -577,6 +583,7 @@ let client
       ?(version = Version.default)
       ?(options = Opt.default)
       ?name
+      ?host_validation_mode
       ?hostname
       ?allowed_ciphers
       ?ca_file
@@ -608,6 +615,7 @@ let client
            , override_security_level )
        in
        Connection.create_client_exn
+         ?host_validation_mode
          ?hostname
          ?name
          ?verify_modes

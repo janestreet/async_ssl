@@ -543,8 +543,8 @@ module Ssl = struct
 
   let set1_groups_list_exn t groups =
     match Bindings.Ssl.set1_groups_list t (String.concat ~sep:":" groups) with
-    | 0 -> ()
-    | 1 ->
+    | 1 -> ()
+    | 0 ->
       failwithf !"SSL_set1_groups_list error: %{sexp:string list}" (get_error_stack ()) ()
     | n -> failwithf "OpenSSL bug: SSL_set1_groups_list returned %d" n ()
   ;;

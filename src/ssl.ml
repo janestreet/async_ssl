@@ -22,7 +22,7 @@ let secure_ciphers =
   [ (* from: cipherli.st *) "EECDH+AESGCM"; "EDH+AESGCM"; "AES256+EECDH"; "AES256+EDH" ]
 ;;
 
-let presumably_secure_groups = [ "P-256"; "P-521"; "P-384"; "X25519"; "ffdhe2048" ]
+let presumably_secure_groups = [ "P-256"; "P-521"; "P-384"; "X25519" ]
 
 module Certificate = struct
   type t = Ffi__library_must_be_initialized.X509.t

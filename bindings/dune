@@ -18,4 +18,4 @@
  (c_library_flags :standard (:include openssl-cclib.sexp))
  (libraries ctypes.stubs ctypes ctypes.foreign base)
  (virtual_deps conf-libssl) (preprocessor_deps config.h)
- (preprocess (pps ppx_jane)))
+ (preprocess (pps ppx_jane ppx_optcomp)))

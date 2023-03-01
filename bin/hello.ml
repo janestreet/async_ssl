@@ -67,6 +67,7 @@ module Server = struct
           | Some allowed_ciphers -> `Only (String.split ~on:':' allowed_ciphers)
         in
         fun () -> main ~crt_file ~key_file ~allowed_ciphers ~port ()]
+      ~behave_nicely_in_pipeline:false
   ;;
 end
 
@@ -152,6 +153,7 @@ module Client = struct
           | Some allowed_ciphers -> `Only (String.split ~on:':' allowed_ciphers)
         in
         fun () -> main ~allowed_ciphers ~print_sans ~print_chain ~host ~port ()]
+      ~behave_nicely_in_pipeline:false
   ;;
 end
 

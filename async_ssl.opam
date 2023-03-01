@@ -15,6 +15,7 @@ depends: [
   "base"
   "core"
   "ppx_jane"
+  "ppx_optcomp"
   "stdio"
   "conf-libssl"
   "ctypes"            {>= "0.18.0"}
@@ -22,6 +23,7 @@ depends: [
   "dune"              {>= "2.0.0"}
   "dune-configurator"
 ]
+available: arch != "arm32" & arch != "x86_32"
 synopsis: "An Async-pipe-based interface with OpenSSL"
 description: "
 This library allows you to create an SSL client and server, with

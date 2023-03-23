@@ -219,9 +219,7 @@ let with_connection ?interrupt ?timeout tls_settings where_to_connect ~f ~time_s
     (fun socket outer_rd outer_wr ->
        let timeout =
          Option.map timeout ~f:(fun timeout ->
-           let tcp_time_elapsed =
-             Time_ns.diff (Time_source.now time_source) start_time
-           in
+           let tcp_time_elapsed = Time_ns.diff (Time_source.now time_source) start_time in
            Time_ns.Span.(timeout - tcp_time_elapsed))
        in
        wrap_client_connection

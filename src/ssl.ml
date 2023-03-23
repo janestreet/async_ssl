@@ -384,8 +384,7 @@ module Connection = struct
           in_retry_wrapper t ~f:(fun () ->
             let write_len = len - startidx in
             let substr = String.sub ~pos:startidx ~len:write_len str in
-            if verbose
-            then Debug.amf [%here] "%s: trying to ssl_write '%s'" t.name substr;
+            if verbose then Debug.amf [%here] "%s: trying to ssl_write '%s'" t.name substr;
             Ffi.Ssl.write t.ssl ~buf:substr ~len:write_len)
         with
         | Ok amount_written ->
@@ -472,8 +471,7 @@ module Connection = struct
         f
     in
     Result.iter_error result ~f:(fun error ->
-      if verbose
-      then Debug.amf [%here] "%s: ERROR: %s" t.name (Error.to_string_hum error);
+      if verbose then Debug.amf [%here] "%s: ERROR: %s" t.name (Error.to_string_hum error);
       cleanup t);
     result
   ;;
@@ -764,8 +762,7 @@ let%test_module _ =
           in
           let client_conn =
             client
-              ~name:
-                "client" (* Necessary to verify the self-signed server certificate. *)
+              ~name:"client" (* Necessary to verify the self-signed server certificate. *)
               ~allowed_ciphers:`Secure
               ~ca_file:"do_not_use_in_production.crt" (* ca certificate *)
               ~crt_file:"do_not_use_in_production.crt" (* client certificate *)

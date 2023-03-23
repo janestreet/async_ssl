@@ -61,9 +61,7 @@ module Types (F : Cstubs.Types.TYPE) = struct
         ; "SSL_OP_SINGLE_ECDH_USE"
         ]
         ~f:(fun c_sym ->
-          let ml_sym =
-            String.chop_prefix_exn c_sym ~prefix:"SSL_OP_" |> String.lowercase
-          in
+          let ml_sym = String.chop_prefix_exn c_sym ~prefix:"SSL_OP_" |> String.lowercase in
           let fallback = "Unsigned.ULong.zero" in
           print_endline
             [%string
@@ -228,9 +226,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
         ; "TLSv1_3_method"
         ]
         ~f:(fun c_sym ->
-          let ml_sym =
-            String.chop_suffix_exn c_sym ~suffix:"_method" |> String.lowercase
-          in
+          let ml_sym = String.chop_suffix_exn c_sym ~suffix:"_method" |> String.lowercase in
           let fallback =
             if String.equal c_sym "TLS_method"
             then "sslv23"

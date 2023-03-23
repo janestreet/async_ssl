@@ -161,7 +161,8 @@ module Ssl_ctx = struct
       Deferred.return
         (match ca_file, ca_path with
          | None, None -> Or_error.error_string "No CA files given."
-         | _ -> Or_error.error "CA load error" (get_error_stack ()) [%sexp_of: string list])
+         | _ ->
+           Or_error.error "CA load error" (get_error_stack ()) [%sexp_of: string list])
   ;;
 
   let set_default_verify_paths ctx =

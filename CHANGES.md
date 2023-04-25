@@ -1,3 +1,16 @@
+## Release v0.16.0
+
+- Removed Support for OpenSSL 1.0. We now require OpenSSL 1.1.x.
+  (OpenSSL 3.x should also work but is untested).
+- Added new configuration option `override_security_level` as an escape hatch to
+  override the system wide OpenSSL security level.
+  See `Ssl.Override_security_level`
+- Added `Connection.peer_certificate_fingerprint` and `Certificate.fingerprint`.
+- Expose `?socket` on `Tls.listen` to allow configuring the underlying listening socket.
+  See `Async_unix.Tcp.Server.create`.
+
+## Old pre-v0.15 changelogs (very likely stale and incomplete)
+
 ## git version
 
 - Added function `Ffi.set_default_verify_paths`, to make OpenSSL use its default for

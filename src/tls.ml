@@ -254,7 +254,7 @@ module Expert = struct
          tls_settings
          where_to_connect
          ~f:(fun sock conn r w ->
-           Ivar.fill conn_ivar (sock, conn, r, w);
+           Ivar.fill_exn conn_ivar (sock, conn, r, w);
            Deferred.any [ Reader.close_finished r; Writer.close_finished w ]));
     Ivar.read conn_ivar
   ;;
@@ -264,7 +264,7 @@ module Expert = struct
     let finished =
       wrap_client_connection tls_settings outer_rd outer_wr ~f:(fun conn r w ->
         let%bind res, `Do_not_close_until finished = f conn r w in
-        Ivar.fill result res;
+        Ivar.fill_exn result res;
         finished)
     in
     let%map result = Ivar.read result in

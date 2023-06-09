@@ -60,6 +60,7 @@ module Connection : sig
   val peer_certificate : t -> Certificate.t Or_error.t option
   val peer_certificate_fingerprint : t -> [ `SHA1 ] -> string option
   val pem_peer_certificate_chain : t -> string option
+  val alpn_selected : t -> string option
 
   (** Check if this TLS1.2 session was reused. This doesn't work for TLS1.3 and newer. *)
   val session_reused : t -> bool
@@ -186,6 +187,7 @@ val client
   (** Break glass if you are stuck using a certificate/encryption that openssl considers
       insecure. Only set this in exceptional circumstances. *)
   -> ?override_security_level:Override_security_level.t
+  -> ?alpn_protocols:string list
   -> app_to_ssl:string Pipe.Reader.t
   -> ssl_to_app:string Pipe.Writer.t
   -> net_to_ssl:string Pipe.Reader.t
@@ -209,6 +211,7 @@ val server
   (** Break glass if you are stuck using a certificate/encryption that openssl considers
       insecure. Only set this in exceptional circumstances. *)
   -> ?override_security_level:Override_security_level.t
+  -> ?alpn_protocols:string list
   -> crt_file:string
   -> key_file:string
   -> app_to_ssl:string Pipe.Reader.t

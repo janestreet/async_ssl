@@ -228,6 +228,11 @@ module Connection = struct
     Ffi.Ssl.get_peer_certificate_chain t.ssl
   ;;
 
+  let alpn_selected t =
+    let (module Ffi) = force ffi in
+    Ffi.Ssl.get_alpn_selected t.ssl
+  ;;
+
   let blen t = Bigstring.length t.bstr
   let bptr t = Ctypes.bigarray_start Ctypes.array1 t.bstr
 
@@ -305,42 +310,42 @@ module Connection = struct
     : type a. t -> f:(unit -> (a, _) Result.t) -> (a, _) Result.t Deferred.t
     =
     fun t ~f ->
-      let (module Ffi) = force ffi in
-      let ret = f () in
-      let module E = Ffi.Ssl_error in
-      match ret with
-      | Ok x -> return (Ok x)
-      | Error e ->
-        if verbose then Debug.amf [%here] "%s: %s" t.name (E.sexp_of_t e |> Sexp.to_string);
-        (match e with
-         | E.Want_read ->
-           (* [Un]intuitively enough, if SSL wants a read, we need to write out all
-              pending data first. *)
-           let%bind () = flush t in
-           (* Then, write the chunk of data from the net into the rbio and try again. *)
-           (match%bind Pipe.read t.net_to_ssl with
-            | `Ok was_read ->
-              Ffi.Bio.write t.rbio ~buf:was_read ~len:(String.length was_read) |> ignore;
-              (* Should never fail. It's an 'infinite' buffer. *)
-              in_retry_wrapper t ~f
-            (* If the connection to the net died, we have to stop. Return an error,
-               and close its matching pipe. *)
-            | `Eof ->
-              if verbose then Debug.amf [%here] "%s: closing ssl_to_app" t.name;
-              Pipe.close t.ssl_to_app;
-              return (Error `Stream_eof))
-         | E.Want_write ->
-           (* If SSL requests a write, write and try again. *)
-           let%bind () = flush t in
-           in_retry_wrapper t ~f
-         (* If the underlying SSL connection died, we get an error of 'ZeroReturn'. *)
-         | E.Zero_return -> return (Error `Session_closed)
-         (* And of course, sometimes SSL is just broken. *)
-         | E.Ssl_error
-         | E.Want_connect
-         | E.Want_accept
-         | E.Want_X509_lookup
-         | E.Syscall_error -> raise_with_ssl_errors ())
+    let (module Ffi) = force ffi in
+    let ret = f () in
+    let module E = Ffi.Ssl_error in
+    match ret with
+    | Ok x -> return (Ok x)
+    | Error e ->
+      if verbose then Debug.amf [%here] "%s: %s" t.name (E.sexp_of_t e |> Sexp.to_string);
+      (match e with
+       | E.Want_read ->
+         (* [Un]intuitively enough, if SSL wants a read, we need to write out all
+            pending data first. *)
+         let%bind () = flush t in
+         (* Then, write the chunk of data from the net into the rbio and try again. *)
+         (match%bind Pipe.read t.net_to_ssl with
+          | `Ok was_read ->
+            Ffi.Bio.write t.rbio ~buf:was_read ~len:(String.length was_read) |> ignore;
+            (* Should never fail. It's an 'infinite' buffer. *)
+            in_retry_wrapper t ~f
+          (* If the connection to the net died, we have to stop. Return an error,
+             and close its matching pipe. *)
+          | `Eof ->
+            if verbose then Debug.amf [%here] "%s: closing ssl_to_app" t.name;
+            Pipe.close t.ssl_to_app;
+            return (Error `Stream_eof))
+       | E.Want_write ->
+         (* If SSL requests a write, write and try again. *)
+         let%bind () = flush t in
+         in_retry_wrapper t ~f
+       (* If the underlying SSL connection died, we get an error of 'ZeroReturn'. *)
+       | E.Zero_return -> return (Error `Session_closed)
+       (* And of course, sometimes SSL is just broken. *)
+       | E.Ssl_error
+       | E.Want_connect
+       | E.Want_accept
+       | E.Want_X509_lookup
+       | E.Syscall_error -> raise_with_ssl_errors ())
   ;;
 
   let do_ssl_read t =
@@ -538,7 +543,8 @@ let context_exn =
       , options
       , crt_file
       , key_file
-      , override_security_level )
+      , override_security_level
+      , alpn_protocols )
       ->
         let (module Ffi) = force ffi in
         let ctx = Ffi.Ssl_ctx.create_exn version in
@@ -556,19 +562,29 @@ let context_exn =
         with
         | Error e -> error e
         | Ok () ->
-          (match%map
+          (match%bind
              match ca_file, ca_path with
              | None, None -> return (Ok (Ffi.Ssl_ctx.set_default_verify_paths ctx))
              | _, _ -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
            with
            | Error e -> error e
            | Ok () ->
-             let session_id_context =
-               Option.value name ~default:"default_session_id_context"
-             in
-             Ffi.Ssl_ctx.set_session_id_context ctx session_id_context;
-             Ffi.Ssl_ctx.set_options ctx options;
-             ctx))
+             (match%bind
+                match alpn_protocols with
+                | `Client None | `Server None -> return (Ok ())
+                | `Client (Some protocols) ->
+                  Ffi.Ssl_ctx.set_alpn_protocols_client ctx protocols |> return
+                | `Server (Some protocols) ->
+                  Ffi.Ssl_ctx.set_alpn_protocols_server ctx protocols |> return
+              with
+              | Error e -> error e
+              | Ok () ->
+                let session_id_context =
+                  Option.value name ~default:"default_session_id_context"
+                in
+                Ffi.Ssl_ctx.set_session_id_context ctx session_id_context;
+                Ffi.Ssl_ctx.set_options ctx options;
+                return ctx)))
 ;;
 
 let client
@@ -584,6 +600,7 @@ let client
       ?verify_modes
       ?session
       ?override_security_level
+      ?alpn_protocols
       ~app_to_ssl
       ~ssl_to_app
       ~net_to_ssl
@@ -603,7 +620,8 @@ let client
            , options
            , crt_file
            , key_file
-           , override_security_level )
+           , override_security_level
+           , `Client alpn_protocols )
        in
        Connection.create_client_exn
          ?hostname
@@ -623,7 +641,7 @@ let client
   Option.iter session ~f:(Session.remember ~conn);
   don't_wait_for
     (Connection.with_cleanup conn ~f:(fun () -> Connection.start_loops conn)
-     >>| Ivar.fill conn.closed);
+     >>| Ivar.fill_exn conn.closed);
   return (Ok conn)
 ;;
 
@@ -636,6 +654,7 @@ let server
       ?ca_path
       ?verify_modes
       ?override_security_level
+      ?alpn_protocols
       ~crt_file
       ~key_file
       ~app_to_ssl
@@ -657,7 +676,8 @@ let server
            , options
            , Some crt_file
            , Some key_file
-           , override_security_level )
+           , override_security_level
+           , `Server alpn_protocols )
        in
        Connection.create_server_exn
          ?name
@@ -674,7 +694,7 @@ let server
   >>=? fun () ->
   don't_wait_for
     (Connection.with_cleanup conn ~f:(fun () -> Connection.start_loops conn)
-     >>| Ivar.fill conn.closed);
+     >>| Ivar.fill_exn conn.closed);
   return (Ok conn)
 ;;
 

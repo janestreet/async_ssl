@@ -96,6 +96,12 @@ module Ssl_ctx : sig
     -> key_file:string
     -> t
     -> unit Deferred.Or_error.t
+
+  (** Set the ALPN protocols that will be accepted by [SSL.t]'s created with this context.*)
+  val set_alpn_protocols_client : t -> string list -> unit Or_error.t
+
+  (** Same as above, but for the server.*)
+  val set_alpn_protocols_server : t -> string list -> unit Or_error.t
 end
 
 module Bio : sig
@@ -218,6 +224,7 @@ module Ssl : sig
   val get_cipher_list : t -> string list
   val get_peer_certificate_chain : t -> string option
   val set1_groups_list_exn : t -> string list -> unit
+  val get_alpn_selected : t -> string option
 end
 
 (** Pops all errors off of the openssl error stack, returning them as a list of

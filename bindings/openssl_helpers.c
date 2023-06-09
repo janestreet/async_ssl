@@ -148,3 +148,42 @@ void async_ssl__free_pem_peer_certificate_chain(char *certs) {
     free(certs);
     return;
 }
+
+/* The following code was copied from openssl's s_server.c */
+typedef struct tlsextalpnctx_st {
+  unsigned char *data;
+  size_t len;
+} tlsextalpnctx;
+
+static int async_ssl__alpn_cb(SSL *s, const unsigned char **out, unsigned char *outlen,
+                   const unsigned char *in, unsigned int inlen, void *arg) {
+    tlsextalpnctx *alpn_ctx = arg;
+
+    if (SSL_select_next_proto
+        ((unsigned char **)out, outlen, alpn_ctx->data, alpn_ctx->len, in,
+         inlen) != OPENSSL_NPN_NEGOTIATED) {
+        return SSL_TLSEXT_ERR_ALERT_FATAL;
+    }
+
+    return SSL_TLSEXT_ERR_OK;
+}
+
+void* async_ssl__set_alpn_callback (SSL_CTX* ctx, char* protocols, size_t len) {
+  unsigned char* prots = malloc(len);
+  memcpy(prots, protocols, len);
+
+  tlsextalpnctx* alpn_ctx = malloc(sizeof(tlsextalpnctx));
+
+  alpn_ctx->data = prots;
+  alpn_ctx->len = len;
+
+  SSL_CTX_set_alpn_select_cb(ctx, async_ssl__alpn_cb, alpn_ctx);
+  return alpn_ctx;
+}
+
+void async_ssl__free_alpn_callback (void* arg) {
+  tlsextalpnctx* alpn_ctx = (tlsextalpnctx*) arg;
+  free(alpn_ctx->data);
+  free(alpn_ctx);
+  return ;
+}

@@ -404,6 +404,20 @@ module Bindings (F : Cstubs.FOREIGN) = struct
         Ctypes.(t @-> string @-> int @-> returning int)
     ;;
 
+    let set_alpn_protos =
+      foreign "SSL_CTX_set_alpn_protos" Ctypes.(t @-> ptr char @-> uint @-> returning int)
+    ;;
+
+    let set_alpn_callback =
+      foreign
+        "async_ssl__set_alpn_callback"
+        Ctypes.(t @-> ptr char @-> uint @-> returning (ptr void))
+    ;;
+
+    let free_alpn_callback =
+      foreign "async_ssl__free_alpn_callback" Ctypes.(ptr void @-> returning void)
+    ;;
+
   end
 
   module Bio = struct
@@ -645,6 +659,12 @@ module Bindings (F : Cstubs.FOREIGN) = struct
       foreign
         "async_ssl__free_pem_peer_certificate_chain"
         Ctypes.(ptr char @-> returning void)
+    ;;
+
+    let get_alpn_selected =
+      foreign
+        "SSL_get0_alpn_selected"
+        Ctypes.(t @-> ptr (ptr char) @-> ptr int @-> returning void)
     ;;
   end
 end

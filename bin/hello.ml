@@ -3,7 +3,7 @@ open Async
 open Async_ssl
 
 module Server = struct
-  let main ~crt_file ~key_file ~allowed_ciphers ~port () =
+  let main ~alpn_protocols ~crt_file ~key_file ~allowed_ciphers ~port () =
     Tcp.Server.create
       ~on_handler_error:`Raise
       (Tcp.Where_to_listen.of_port port)
@@ -12,6 +12,7 @@ module Server = struct
          let pipe_ssl_r, pipe_w = Pipe.create () in
          match%bind
            Ssl.server
+             ?alpn_protocols
              ~options:[ Ssl.Opt.No_sslv2; Ssl.Opt.No_sslv3 ]
              ~allowed_ciphers
              ~crt_file
@@ -60,13 +61,18 @@ module Server = struct
             "-key"
             (optional_with_default key_file Filename_unix.arg_type)
             ~doc:"KEY pem file with key"
+        and alpn_protocols =
+          flag
+            "-alpn-protocols"
+            (optional (Arg_type.comma_separated string))
+            ~doc:"PROTOCOL[,PROTOCOL] ALPN protocols to negotiate between"
         in
         let allowed_ciphers =
           match allowed_ciphers with
           | None -> `Secure
           | Some allowed_ciphers -> `Only (String.split ~on:':' allowed_ciphers)
         in
-        fun () -> main ~crt_file ~key_file ~allowed_ciphers ~port ()]
+        fun () -> main ~alpn_protocols ~crt_file ~key_file ~allowed_ciphers ~port ()]
       ~behave_nicely_in_pipeline:false
   ;;
 end
@@ -98,7 +104,16 @@ module Client = struct
       | None -> ())
   ;;
 
-  let main ~allowed_ciphers ~print_sans ~print_chain ~host ~port () =
+  let maybe_print_alpn_negotiated ~alpn_protocols ~ssl =
+    match alpn_protocols with
+    | None -> ()
+    | Some _ ->
+      (match Ssl.Connection.alpn_selected ssl with
+       | Some alpn -> printf "ALPN negotiated:\n%s\n" alpn
+       | None -> printf "No ALPN negotiated\n")
+  ;;
+
+  let main ~alpn_protocols ~allowed_ciphers ~print_sans ~print_chain ~host ~port () =
     let hp = Host_and_port.create ~host ~port in
     let wtc = Tcp.Where_to_connect.of_host_and_port hp in
     let%bind _socket, tcp_r, tcp_w = Tcp.connect wtc in
@@ -106,6 +121,7 @@ module Client = struct
     let pipe_ssl_r, _pipe_w = Pipe.create () in
     match%bind
       Ssl.client
+        ?alpn_protocols
         ~options:[ Ssl.Opt.No_sslv2; Ssl.Opt.No_sslv3 ]
         ~allowed_ciphers
         ~verify_modes:[ Ssl.Verify_mode.Verify_peer ]
@@ -122,6 +138,7 @@ module Client = struct
       let%bind r = Reader.of_pipe (Info.of_string "Hello Client over SSL") pipe_r in
       let%bind () = maybe_print_sans ~print_sans ~ssl in
       maybe_print_peer_cert_chain ~print_chain ~ssl;
+      maybe_print_alpn_negotiated ~alpn_protocols ~ssl;
       printf "Connected to server, reading one line of data...\n";
       let%bind result = Reader.read_line r in
       (match result with
@@ -146,13 +163,19 @@ module Client = struct
           flag "-print-sans" no_arg ~doc:"Print subjectAltNames of server certificate"
         and print_chain =
           flag "-print-chain" no_arg ~doc:"Print peer certificate chain in PEM format"
+        and alpn_protocols =
+          flag
+            "-alpn-protocols"
+            (optional (Arg_type.comma_separated string))
+            ~doc:"PROTOCOL[,PROTOCOL] ALPN protocols to negotiate between"
         in
         let allowed_ciphers =
           match allowed_ciphers with
           | None -> `Secure
           | Some allowed_ciphers -> `Only (String.split ~on:':' allowed_ciphers)
         in
-        fun () -> main ~allowed_ciphers ~print_sans ~print_chain ~host ~port ()]
+        fun () ->
+          main ~alpn_protocols ~allowed_ciphers ~print_sans ~print_chain ~host ~port ()]
       ~behave_nicely_in_pipeline:false
   ;;
 end

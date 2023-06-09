@@ -17,6 +17,7 @@ module Client : sig
     (** Break glass if you are stuck using a certificate/encryption that openssl considers
         insecure. Only set this in exceptional circumstances. *)
     -> ?override_security_level:Ssl.Override_security_level.t
+    -> ?alpn_protocols:string list
     -> remote_hostname:string option
     -> ca_file:string option
     -> ca_path:string option
@@ -41,6 +42,7 @@ module Client : sig
   val session : t -> Ssl.Session.t option
   val connection_name : t -> string option
   val override_security_level : t -> Ssl.Override_security_level.t option
+  val alpn_protocols : t -> string list option
 end
 
 module Server : sig
@@ -53,6 +55,7 @@ module Server : sig
     (** Break glass if you are stuck using a certificate/encryption that openssl considers
         insecure. Only set this in exceptional circumstances. *)
     -> ?override_security_level:Ssl.Override_security_level.t
+    -> ?alpn_protocols:string list
     -> crt_file:string
     -> key_file:string
     -> ca_file:string option
@@ -69,4 +72,5 @@ module Server : sig
   val tls_options : t -> Opt.t list
   val verify_modes : t -> Verify_mode.t list option
   val override_security_level : t -> Ssl.Override_security_level.t option
+  val alpn_protocols : t -> string list option
 end

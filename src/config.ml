@@ -17,6 +17,7 @@ module Client = struct
     ; session : (Ssl.Session.t[@sexp.opaque]) option
     ; connection_name : string option
     ; override_security_level : (Ssl.Override_security_level.t[@sexp.opaque]) option
+    ; alpn_protocols : string list option
     }
   [@@deriving sexp_of, fields]
 
@@ -29,6 +30,7 @@ module Client = struct
         ?session
         ?connection_name
         ?override_security_level
+        ?alpn_protocols
         ~remote_hostname
         ~ca_file
         ~ca_path
@@ -49,6 +51,7 @@ module Client = struct
       ~verify_modes
       ~verify_callback
       ~override_security_level
+      ~alpn_protocols
   ;;
 end
 
@@ -63,6 +66,7 @@ module Server = struct
     ; tls_options : Opt.t list
     ; verify_modes : Verify_mode.t list option
     ; override_security_level : (Ssl.Override_security_level.t[@sexp.opaque]) option
+    ; alpn_protocols : string list option
     }
   [@@deriving sexp_of, fields]
 
@@ -71,6 +75,7 @@ module Server = struct
         ?(tls_options = Opt.[ No_sslv2; No_sslv3; No_tlsv1; No_tlsv1_1 ])
         ?(allowed_ciphers = `Secure)
         ?override_security_level
+        ?alpn_protocols
         ~crt_file
         ~key_file
         ~ca_file
@@ -87,5 +92,6 @@ module Server = struct
       ~tls_version:Version.Tls
       ~tls_options
       ~override_security_level
+      ~alpn_protocols
   ;;
 end

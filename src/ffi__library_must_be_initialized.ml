@@ -204,6 +204,44 @@ module Ssl_ctx = struct
        | x -> error x)
     | x -> error x
   ;;
+
+  let alpn_protocols_to_char_vector protocols =
+    let open Ctypes in
+    let count =
+      List.sum (module Int) protocols ~f:String.length + List.length protocols + 1
+    in
+    let prots = allocate_n char ~count in
+    let len =
+      List.fold protocols ~init:0 ~f:(fun loc prot ->
+        prots +@ loc <-@ char_of_int (String.length prot);
+        String.fold prot ~init:(loc + 1) ~f:(fun loc c ->
+          prots +@ loc <-@ c;
+          loc + 1))
+      |> Unsigned.UInt.of_int
+    in
+    prots, len
+  ;;
+
+  let set_alpn_protocols_client ctx protocols =
+    let prot_vector, len = alpn_protocols_to_char_vector protocols in
+    match%bind.Or_error
+      Or_error.try_with (fun () -> Bindings.Ssl_ctx.set_alpn_protos ctx prot_vector len)
+    with
+    | 0 -> Or_error.return ()
+    | x ->
+      Or_error.error
+        "Could not set alpn protocol."
+        (`Return_value x, `Errors (get_error_stack ()))
+        [%sexp_of: [ `Return_value of int ] * [ `Errors of string list ]]
+  ;;
+
+  let set_alpn_protocols_server ctx protocols =
+    let prot_vector, len = alpn_protocols_to_char_vector protocols in
+    let%map.Or_error alpn_ctx =
+      Or_error.try_with (fun () -> Bindings.Ssl_ctx.set_alpn_callback ctx prot_vector len)
+    in
+    Gc.add_finalizer_exn ctx (fun _ -> Bindings.Ssl_ctx.free_alpn_callback alpn_ctx)
+  ;;
 end
 
 module Bio = struct
@@ -570,5 +608,15 @@ module Ssl = struct
           | None -> failwith "Coercion of certificate chain failed"
           | Some s -> Some s)
         ~finally:(fun () -> Bindings.Ssl.free_pem_peer_certificate_chain results_p)
+  ;;
+
+  let get_alpn_selected t =
+    let open Ctypes in
+    let protocol = allocate (ptr char) (coerce (ptr void) (ptr char) null) in
+    let len = allocate int 0 in
+    Bindings.Ssl.get_alpn_selected t protocol len;
+    if is_null !@protocol
+    then None
+    else String.init !@len ~f:(fun pos -> !@(!@protocol +@ pos)) |> Some
   ;;
 end

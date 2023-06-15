@@ -23,8 +23,6 @@ let initialize () =
     Bindings.openssl_config None;
     (* Make hardware accelaration available *)
     Bindings.Engine.load_builtin_engines ();
-    (* But unload RAND because RDRAND is suspected to have been compromised *)
-    Bindings.Engine.unregister_RAND ();
     (* Finish engine registration *)
     Bindings.Engine.register_all_complete ();
     (* SSL_library_init() initializes the SSL algorithms.

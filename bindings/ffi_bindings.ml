@@ -342,10 +342,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
       foreign "ENGINE_load_builtin_engines" Ctypes.(void @-> returning void)
     ;;
 
-    let unregister_RAND =
-      foreign "ENGINE_unregister_RAND" Ctypes.(void @-> returning void)
-    ;;
-
     let register_all_complete =
       foreign "ENGINE_register_all_complete" Ctypes.(void @-> returning void)
     ;;

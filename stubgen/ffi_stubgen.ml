@@ -7,6 +7,7 @@ let prologue =
    #include <openssl/ssl.h>\n\
    #include <openssl/err.h>\n\
    #include <openssl/conf.h>\n\n\
+   #include <openssl/engine.h>\n\n\
    #include \"../bindings/openssl_helpers.h\"\n"
 ;;
 

@@ -641,7 +641,7 @@ let client
   Option.iter session ~f:(Session.remember ~conn);
   don't_wait_for
     (Connection.with_cleanup conn ~f:(fun () -> Connection.start_loops conn)
-     >>| Ivar.fill_exn conn.closed);
+     >>| Ivar.fill conn.closed);
   return (Ok conn)
 ;;
 
@@ -694,7 +694,7 @@ let server
   >>=? fun () ->
   don't_wait_for
     (Connection.with_cleanup conn ~f:(fun () -> Connection.start_loops conn)
-     >>| Ivar.fill_exn conn.closed);
+     >>| Ivar.fill conn.closed);
   return (Ok conn)
 ;;
 

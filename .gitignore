@@ -1,5 +1,5 @@
 _build
+_opam
 *.install
 *.merlin
-_opam
 *.DS_Store

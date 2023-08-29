@@ -50,6 +50,11 @@ module Certificate = struct
     let (module Ffi) = force ffi in
     Ffi.X509.fingerprint t algo
   ;;
+
+  let check_host t name =
+    let (module Ffi) = force ffi in
+    Ffi.X509.check_host t name
+  ;;
 end
 
 module Override_security_level = struct
@@ -82,7 +87,7 @@ module Connection = struct
     ; ssl_to_net : string Pipe.Writer.t
     ; closed : unit Or_error.t Ivar.t
     }
-  [@@deriving sexp_of, fields]
+  [@@deriving sexp_of, fields ~getters]
 
   let create_exn
         ?verify_modes
@@ -221,6 +226,11 @@ module Connection = struct
   let peer_certificate_fingerprint t algo =
     let (module Ffi) = force ffi in
     Ffi.Ssl.get_peer_certificate_fingerprint t.ssl algo
+  ;;
+
+  let check_peer_certificate_host t name =
+    let (module Ffi) = force ffi in
+    Ffi.Ssl.check_peer_certificate_host t.ssl name
   ;;
 
   let pem_peer_certificate_chain t =

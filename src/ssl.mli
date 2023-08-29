@@ -25,6 +25,7 @@ module Certificate : sig
   val subject : t -> (string * string) list
   val subject_alt_names : t -> string list
   val fingerprint : t -> [ `SHA1 ] -> string
+  val check_host : t -> string -> unit Or_error.t
 end
 
 module Session : sig
@@ -59,6 +60,7 @@ module Connection : sig
 
   val peer_certificate : t -> Certificate.t Or_error.t option
   val peer_certificate_fingerprint : t -> [ `SHA1 ] -> string option
+  val check_peer_certificate_host : t -> string -> unit Or_error.t
   val pem_peer_certificate_chain : t -> string option
   val alpn_selected : t -> string option
 

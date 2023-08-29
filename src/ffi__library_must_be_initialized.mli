@@ -161,6 +161,8 @@ module X509 : sig
   val get_subject_name : t -> X509_name.t
   val get_subject_alt_names : t -> string list
   val fingerprint : t -> [ `SHA1 ] -> string
+  val check_host : t -> string -> unit Or_error.t
+  val check_ip : t -> string -> unit Or_error.t
 end
 
 module Ssl_session : sig
@@ -207,6 +209,7 @@ module Ssl : sig
   val set_verify : t -> Verify_mode.t list -> unit
   val get_peer_certificate : t -> X509.t option
   val get_peer_certificate_fingerprint : t -> [ `SHA1 ] -> string option
+  val check_peer_certificate_host : t -> string -> unit Or_error.t
 
   (* Returns Ok () if there is no peer certificate. *)
 

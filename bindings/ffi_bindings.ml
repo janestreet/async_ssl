@@ -530,6 +530,16 @@ module Bindings (F : Cstubs.FOREIGN) = struct
         "X509_digest"
         Ctypes.(t @-> EVP.t @-> ptr char @-> ptr int @-> returning bool)
     ;;
+
+    let check_host =
+      foreign
+        "X509_check_host"
+        Ctypes.(t @-> string @-> int @-> int @-> ptr_opt void @-> returning int)
+    ;;
+
+    let check_ip =
+      foreign "X509_check_ip_asc" Ctypes.(t @-> string @-> int @-> returning int)
+    ;;
   end
 
   module Ssl_session = struct

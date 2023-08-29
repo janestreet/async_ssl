@@ -336,6 +336,44 @@ module X509 = struct
     then Ctypes.string_from_ptr buf ~length:!@len
     else raise_s [%message "Failed to compute digest"]
   ;;
+
+  let check_host t name =
+    (* see https://www.openssl.org/docs/manmaster/man3/X509_check_host.html *)
+    let flags = 0 in
+    let status = Bindings.X509.check_host t name (String.length name) flags None in
+    if status = 1
+    then Ok ()
+    else if status = 0
+    then Or_error.error_s [%message "hostname did not match"]
+    else if status = -1
+    then Or_error.error_s [%message "open_ssl internal error"]
+    else if status = -2
+    then Or_error.error_s [%message "malformed certificate"]
+    else
+      Or_error.error_s
+        [%message "Unexpected status code from X509_check_host" (status : int)]
+  ;;
+
+  let check_ip t name =
+    (* see https://www.openssl.org/docs/manmaster/man3/X509_check_host.html *)
+    let flags = 0 in
+    let status = Bindings.X509.check_ip t name flags in
+    if status = 1
+    then Ok ()
+    else if status = 0
+    then Or_error.error_s [%message "ip did not match"]
+    else if status = -1
+    then Or_error.error_s [%message "open_ssl internal error"]
+    else if status = -2
+    then
+      Or_error.error_s
+        [%message
+          [%string
+            "malformed input to check_ip. Expected if %{name} isn't an IP address."]]
+    else
+      Or_error.error_s
+        [%message "Unexpected status code from X509_check_ip_asc" (status : int)]
+  ;;
 end
 
 module Ssl_session = struct
@@ -500,6 +538,23 @@ module Ssl = struct
       protect
         ~f:(fun () -> X509.fingerprint cert algo)
         ~finally:(fun () -> Bindings.X509.free cert))
+  ;;
+
+  let check_peer_certificate_host t name =
+    match Bindings.Ssl.get_peer_certificate t with
+    | None -> Or_error.error_s [%message "No Peer Certificate"]
+    | Some cert ->
+      protect
+        ~f:(fun () ->
+          match X509.check_host cert name with
+          | Ok () -> Ok ()
+          | Error hostname_error ->
+            (match X509.check_ip cert name with
+             | Ok () -> Ok ()
+             (* We prefer returning [hostname_error] and drop error output from 
+                [check_ip] to avoid introducing more confusing output. *)
+             | Error (_ : Error.t) -> Error hostname_error))
+        ~finally:(fun () -> Bindings.X509.free cert)
   ;;
 
   let get_verify_result t =

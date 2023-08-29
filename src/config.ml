@@ -19,7 +19,7 @@ module Client = struct
     ; override_security_level : (Ssl.Override_security_level.t[@sexp.opaque]) option
     ; alpn_protocols : string list option
     }
-  [@@deriving sexp_of, fields]
+  [@@deriving sexp_of, fields ~getters ~iterators:create]
 
   let create
         ?(verify_modes = [ Verify_mode.Verify_peer ])
@@ -68,7 +68,7 @@ module Server = struct
     ; override_security_level : (Ssl.Override_security_level.t[@sexp.opaque]) option
     ; alpn_protocols : string list option
     }
-  [@@deriving sexp_of, fields]
+  [@@deriving sexp_of, fields ~getters ~iterators:create]
 
   let create
         ?verify_modes

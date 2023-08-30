@@ -11,7 +11,7 @@ let make ~prime ~generator =
 
 let modp_1536 () =
   make
-    (* 2.  1536-bit MODP Group
+  (* 2.  1536-bit MODP Group
        The 1536 bit MODP group has been used for the implementations for
        quite a long time, but was not defined in RFC 2409 (IKE).
        Implementations have been using group 5 to designate this group, we
@@ -24,7 +24,7 @@ let modp_1536 () =
 
 let modp_2048 () =
   make
-    (* 3.  2048-bit MODP Group
+  (* 3.  2048-bit MODP Group
        This group is assigned id 14.
        This prime is: 2^2048 - 2^1984 - 1 + 2^64 * { [2^1918 pi] + 124476 } *)
     ~prime:
@@ -34,7 +34,7 @@ let modp_2048 () =
 
 let modp_3072 () =
   make
-    (* 4.  3072-bit MODP Group
+  (* 4.  3072-bit MODP Group
        This group is assigned id 15.
        This prime is: 2^3072 - 2^3008 - 1 + 2^64 * { [2^2942 pi] + 1690314 } *)
     ~prime:
@@ -44,7 +44,7 @@ let modp_3072 () =
 
 let modp_4096 () =
   make
-    (* 5.  4096-bit MODP Group
+  (* 5.  4096-bit MODP Group
        This group is assigned id 16.
        This prime is: 2^4096 - 2^4032 - 1 + 2^64 * { [2^3966 pi] + 240904 } *)
     ~prime:
@@ -54,7 +54,7 @@ let modp_4096 () =
 
 let modp_6144 () =
   make
-    (* 6.  6144-bit MODP Group
+  (* 6.  6144-bit MODP Group
        This group is assigned id 17.
        This prime is: 2^6144 - 2^6080 - 1 + 2^64 * { [2^6014 pi] + 929484 } *)
     ~prime:
@@ -64,7 +64,7 @@ let modp_6144 () =
 
 let modp_8192 () =
   make
-    (* 7.  8192-bit MODP Group
+  (* 7.  8192-bit MODP Group
        This group is assigned id 18.
        This prime is: 2^8192 - 2^8128 - 1 + 2^64 * { [2^8062 pi] + 4743158 } *)
     ~prime:

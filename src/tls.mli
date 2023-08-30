@@ -3,7 +3,6 @@ open! Async
 open! Import
 module Connection = Ssl.Connection
 
-
 (** Accept TCP connections, do a TLS negotiation on each connection and call [f] with the
     encrypted channel.
 

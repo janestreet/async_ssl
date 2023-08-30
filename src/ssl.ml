@@ -72,12 +72,12 @@ module Connection = struct
     { ssl : Ffi__library_must_be_initialized.Ssl.t
     ; ctx : Ffi__library_must_be_initialized.Ssl_ctx.t
     ; client_or_server : [ `Client | `Server ]
-    (* The reader and writer binary IO interfaces used by SSL to exchange data without
+        (* The reader and writer binary IO interfaces used by SSL to exchange data without
        going through a file descriptor.  Strangely enough, to use SSL we _read from_ wbio
        and _write to_ wbio.  The names are from the perspective of the SSL library. *)
     ; rbio : Ffi__library_must_be_initialized.Bio.t
     ; wbio : Ffi__library_must_be_initialized.Bio.t
-    (* Reads and writes to/from C must go through a bigstring.  We share it in the record
+        (* Reads and writes to/from C must go through a bigstring.  We share it in the record
        to prevent needless reallocations. *)
     ; bstr : bigstring
     ; name : string
@@ -90,17 +90,17 @@ module Connection = struct
   [@@deriving sexp_of, fields ~getters]
 
   let create_exn
-        ?verify_modes
-        ?(allowed_ciphers = `Secure)
-        ctx
-        version
-        client_or_server
-        ?hostname
-        name
-        ~app_to_ssl
-        ~ssl_to_app
-        ~net_to_ssl
-        ~ssl_to_net
+    ?verify_modes
+    ?(allowed_ciphers = `Secure)
+    ctx
+    version
+    client_or_server
+    ?hostname
+    name
+    ~app_to_ssl
+    ~ssl_to_app
+    ~net_to_ssl
+    ~ssl_to_net
     =
     let (module Ffi) = force ffi in
     (* SSL is transferred in 16 kB packets.  Therefore, it makes sense for our buffers to
@@ -141,16 +141,16 @@ module Connection = struct
   ;;
 
   let create_client_exn
-        ?hostname
-        ?name:(nm = "(anonymous)")
-        ?allowed_ciphers
-        ?(verify_modes = [ Verify_mode.Verify_peer ])
-        ctx
-        version
-        ~app_to_ssl
-        ~ssl_to_app
-        ~net_to_ssl
-        ~ssl_to_net
+    ?hostname
+    ?name:(nm = "(anonymous)")
+    ?allowed_ciphers
+    ?(verify_modes = [ Verify_mode.Verify_peer ])
+    ctx
+    version
+    ~app_to_ssl
+    ~ssl_to_app
+    ~net_to_ssl
+    ~ssl_to_net
     =
     create_exn
       ~verify_modes
@@ -168,15 +168,15 @@ module Connection = struct
   ;;
 
   let create_server_exn
-        ?name:(nm = "(anonymous)")
-        ?verify_modes
-        ?allowed_ciphers
-        ctx
-        version
-        ~app_to_ssl
-        ~ssl_to_app
-        ~net_to_ssl
-        ~ssl_to_net
+    ?name:(nm = "(anonymous)")
+    ?verify_modes
+    ?allowed_ciphers
+    ctx
+    version
+    ~app_to_ssl
+    ~ssl_to_app
+    ~net_to_ssl
+    ~ssl_to_net
     =
     let (module Ffi) = force ffi in
     let connection =
@@ -479,11 +479,7 @@ module Connection = struct
      [run_reader_loop] and [run_writer_loop], since they'll just keep getting EOFs. *)
   let with_cleanup t ~f =
     let%map result =
-      Deferred.Or_error.try_with
-        ~run:`Schedule
-        ~rest:`Log
-        ~name:"ssl_pipe"
-        f
+      Deferred.Or_error.try_with ~run:`Schedule ~rest:`Log ~name:"ssl_pipe" f
     in
     Result.iter_error result ~f:(fun error ->
       if verbose then Debug.amf [%here] "%s: ERROR: %s" t.name (Error.to_string_hum error);
@@ -496,7 +492,7 @@ module Session = struct
   module State = struct
     type t =
       { session : Ffi__library_must_be_initialized.Ssl_session.t
-      (* One SSL_SESSION object must only be used with one SSL_CTX object *)
+          (* One SSL_SESSION object must only be used with one SSL_CTX object *)
       ; ctx : Ffi__library_must_be_initialized.Ssl_ctx.t
       }
 
@@ -546,104 +542,101 @@ end
 let context_exn =
   Memo.general
     (fun
-      ( name
-      , version
-      , ca_file
-      , ca_path
-      , options
-      , crt_file
-      , key_file
-      , override_security_level
-      , alpn_protocols )
-      ->
-        let (module Ffi) = force ffi in
-        let ctx = Ffi.Ssl_ctx.create_exn version in
-        let error e =
-          failwiths ~here:[%here] "Could not initialize ssl context" e [%sexp_of: Error.t]
-        in
-        Option.iter
-          override_security_level
-          ~f:(Ffi.Ssl_ctx.override_default_insecure__set_security_level ctx);
-        match%bind
-          match crt_file, key_file with
-          | Some crt_file, Some key_file ->
-            Ffi.Ssl_ctx.use_certificate_chain_and_key_files ~crt_file ~key_file ctx
-          | _, _ -> return (Ok ())
-        with
-        | Error e -> error e
-        | Ok () ->
-          (match%bind
-             match ca_file, ca_path with
-             | None, None -> return (Ok (Ffi.Ssl_ctx.set_default_verify_paths ctx))
-             | _, _ -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
-           with
-           | Error e -> error e
-           | Ok () ->
-             (match%bind
-                match alpn_protocols with
-                | `Client None | `Server None -> return (Ok ())
-                | `Client (Some protocols) ->
-                  Ffi.Ssl_ctx.set_alpn_protocols_client ctx protocols |> return
-                | `Server (Some protocols) ->
-                  Ffi.Ssl_ctx.set_alpn_protocols_server ctx protocols |> return
-              with
-              | Error e -> error e
-              | Ok () ->
-                let session_id_context =
-                  Option.value name ~default:"default_session_id_context"
-                in
-                Ffi.Ssl_ctx.set_session_id_context ctx session_id_context;
-                Ffi.Ssl_ctx.set_options ctx options;
-                return ctx)))
+        ( name
+        , version
+        , ca_file
+        , ca_path
+        , options
+        , crt_file
+        , key_file
+        , override_security_level
+        , alpn_protocols )
+        ->
+    let (module Ffi) = force ffi in
+    let ctx = Ffi.Ssl_ctx.create_exn version in
+    let error e =
+      failwiths ~here:[%here] "Could not initialize ssl context" e [%sexp_of: Error.t]
+    in
+    Option.iter
+      override_security_level
+      ~f:(Ffi.Ssl_ctx.override_default_insecure__set_security_level ctx);
+    match%bind
+      match crt_file, key_file with
+      | Some crt_file, Some key_file ->
+        Ffi.Ssl_ctx.use_certificate_chain_and_key_files ~crt_file ~key_file ctx
+      | _, _ -> return (Ok ())
+    with
+    | Error e -> error e
+    | Ok () ->
+      (match%bind
+         match ca_file, ca_path with
+         | None, None -> return (Ok (Ffi.Ssl_ctx.set_default_verify_paths ctx))
+         | _, _ -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
+       with
+       | Error e -> error e
+       | Ok () ->
+         (match%bind
+            match alpn_protocols with
+            | `Client None | `Server None -> return (Ok ())
+            | `Client (Some protocols) ->
+              Ffi.Ssl_ctx.set_alpn_protocols_client ctx protocols |> return
+            | `Server (Some protocols) ->
+              Ffi.Ssl_ctx.set_alpn_protocols_server ctx protocols |> return
+          with
+          | Error e -> error e
+          | Ok () ->
+            let session_id_context =
+              Option.value name ~default:"default_session_id_context"
+            in
+            Ffi.Ssl_ctx.set_session_id_context ctx session_id_context;
+            Ffi.Ssl_ctx.set_options ctx options;
+            return ctx)))
 ;;
 
 let client
-      ?(version = Version.default)
-      ?(options = Opt.default)
-      ?name
+  ?(version = Version.default)
+  ?(options = Opt.default)
+  ?name
+  ?hostname
+  ?allowed_ciphers
+  ?ca_file
+  ?ca_path
+  ?crt_file
+  ?key_file
+  ?verify_modes
+  ?session
+  ?override_security_level
+  ?alpn_protocols
+  ~app_to_ssl
+  ~ssl_to_app
+  ~net_to_ssl
+  ~ssl_to_net
+  ()
+  =
+  Deferred.Or_error.try_with ~run:`Schedule ~rest:`Log (fun () ->
+    let%bind context =
+      context_exn
+        ( name
+        , version
+        , ca_file
+        , ca_path
+        , options
+        , crt_file
+        , key_file
+        , override_security_level
+        , `Client alpn_protocols )
+    in
+    Connection.create_client_exn
       ?hostname
-      ?allowed_ciphers
-      ?ca_file
-      ?ca_path
-      ?crt_file
-      ?key_file
+      ?name
       ?verify_modes
-      ?session
-      ?override_security_level
-      ?alpn_protocols
+      ?allowed_ciphers
+      context
+      version
       ~app_to_ssl
       ~ssl_to_app
       ~net_to_ssl
-      ~ssl_to_net
-      ()
-  =
-  Deferred.Or_error.try_with
-    ~run:`Schedule
-    ~rest:`Log
-    (fun () ->
-       let%bind context =
-         context_exn
-           ( name
-           , version
-           , ca_file
-           , ca_path
-           , options
-           , crt_file
-           , key_file
-           , override_security_level
-           , `Client alpn_protocols )
-       in
-       Connection.create_client_exn
-         ?hostname
-         ?name
-         ?verify_modes
-         ?allowed_ciphers
-         context
-         version
-         ~app_to_ssl
-         ~ssl_to_app
-         ~net_to_ssl
-         ~ssl_to_net)
+      ~ssl_to_net)
   >>=? fun conn ->
   Option.iter session ~f:(Session.reuse ~conn);
   Connection.with_cleanup conn ~f:(fun () -> Connection.run_handshake conn)
@@ -656,49 +649,46 @@ let client
 ;;
 
 let server
-      ?(version = Version.default)
-      ?(options = Opt.default)
+  ?(version = Version.default)
+  ?(options = Opt.default)
+  ?name
+  ?allowed_ciphers
+  ?ca_file
+  ?ca_path
+  ?verify_modes
+  ?override_security_level
+  ?alpn_protocols
+  ~crt_file
+  ~key_file
+  ~app_to_ssl
+  ~ssl_to_app
+  ~net_to_ssl
+  ~ssl_to_net
+  ()
+  =
+  Deferred.Or_error.try_with ~run:`Schedule ~rest:`Log (fun () ->
+    let%bind context =
+      context_exn
+        ( name
+        , version
+        , ca_file
+        , ca_path
+        , options
+        , Some crt_file
+        , Some key_file
+        , override_security_level
+        , `Server alpn_protocols )
+    in
+    Connection.create_server_exn
       ?name
-      ?allowed_ciphers
-      ?ca_file
-      ?ca_path
+      context
+      version
       ?verify_modes
-      ?override_security_level
-      ?alpn_protocols
-      ~crt_file
-      ~key_file
+      ?allowed_ciphers
       ~app_to_ssl
       ~ssl_to_app
       ~net_to_ssl
-      ~ssl_to_net
-      ()
-  =
-  Deferred.Or_error.try_with
-    ~run:`Schedule
-    ~rest:`Log
-    (fun () ->
-       let%bind context =
-         context_exn
-           ( name
-           , version
-           , ca_file
-           , ca_path
-           , options
-           , Some crt_file
-           , Some key_file
-           , override_security_level
-           , `Server alpn_protocols )
-       in
-       Connection.create_server_exn
-         ?name
-         context
-         version
-         ?verify_modes
-         ?allowed_ciphers
-         ~app_to_ssl
-         ~ssl_to_app
-         ~net_to_ssl
-         ~ssl_to_net)
+      ~ssl_to_net)
   >>=? fun conn ->
   Connection.with_cleanup conn ~f:(fun () -> Connection.run_handshake conn)
   >>=? fun () ->
@@ -774,7 +764,7 @@ let%test_module _ =
           let server_conn =
             server
               ~name:"server"
-              (* It might be confusing that the two "don't_use_in_production"
+                (* It might be confusing that the two "don't_use_in_production"
                  files are used for different purposes. This is enough to test out
                  the functionality, but if we want to be super clear we need 5
                  such files in this library: ca crt, server key + crt, and client

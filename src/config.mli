@@ -2,7 +2,6 @@ open! Core
 open! Async
 open! Import
 
-
 module Client : sig
   type t [@@deriving sexp_of]
 
@@ -14,7 +13,7 @@ module Client : sig
     -> ?key_file:string
     -> ?session:Ssl.Session.t
     -> ?connection_name:string
-    (** Break glass if you are stuck using a certificate/encryption that openssl considers
+         (** Break glass if you are stuck using a certificate/encryption that openssl considers
         insecure. Only set this in exceptional circumstances. *)
     -> ?override_security_level:Ssl.Override_security_level.t
     -> ?alpn_protocols:string list
@@ -52,7 +51,7 @@ module Server : sig
     :  ?verify_modes:Verify_mode.t list
     -> ?tls_options:Opt.t list
     -> ?allowed_ciphers:[ `Secure | `Openssl_default | `Only of string list ]
-    (** Break glass if you are stuck using a certificate/encryption that openssl considers
+         (** Break glass if you are stuck using a certificate/encryption that openssl considers
         insecure. Only set this in exceptional circumstances. *)
     -> ?override_security_level:Ssl.Override_security_level.t
     -> ?alpn_protocols:string list

@@ -8,35 +8,35 @@ module Server = struct
       ~on_handler_error:`Raise
       (Tcp.Where_to_listen.of_port port)
       (fun _address tcp_r tcp_w ->
-         let _pipe_r, pipe_ssl_w = Pipe.create () in
-         let pipe_ssl_r, pipe_w = Pipe.create () in
-         match%bind
-           Ssl.server
-             ?alpn_protocols
-             ~options:[ Ssl.Opt.No_sslv2; Ssl.Opt.No_sslv3 ]
-             ~allowed_ciphers
-             ~crt_file
-             ~key_file
-             ~net_to_ssl:(Reader.pipe tcp_r)
-             ~ssl_to_net:(Writer.pipe tcp_w)
-             ~ssl_to_app:pipe_ssl_w
-             ~app_to_ssl:pipe_ssl_r
-             ()
-         with
-         | Error err ->
-           printf !"Error: %{Sexp}\n" (Error.sexp_of_t err);
-           Deferred.unit
-         | Ok ssl ->
-           let%bind w, `Closed_and_flushed_downstream closed_and_flushed =
-             Writer.of_pipe (Info.of_string "Hello Server over SSL") pipe_w
-           in
-           printf "Client has connected, writing 1 line of data...\n";
-           Writer.write w "Hello!\n";
-           let%bind () = Writer.close w in
-           let%bind () = closed_and_flushed in
-           Ssl.Connection.close ssl;
-           let%bind () = Ssl.Connection.closed ssl >>| Or_error.ok_exn in
-           Writer.flushed tcp_w)
+      let _pipe_r, pipe_ssl_w = Pipe.create () in
+      let pipe_ssl_r, pipe_w = Pipe.create () in
+      match%bind
+        Ssl.server
+          ?alpn_protocols
+          ~options:[ Ssl.Opt.No_sslv2; Ssl.Opt.No_sslv3 ]
+          ~allowed_ciphers
+          ~crt_file
+          ~key_file
+          ~net_to_ssl:(Reader.pipe tcp_r)
+          ~ssl_to_net:(Writer.pipe tcp_w)
+          ~ssl_to_app:pipe_ssl_w
+          ~app_to_ssl:pipe_ssl_r
+          ()
+      with
+      | Error err ->
+        printf !"Error: %{Sexp}\n" (Error.sexp_of_t err);
+        Deferred.unit
+      | Ok ssl ->
+        let%bind w, `Closed_and_flushed_downstream closed_and_flushed =
+          Writer.of_pipe (Info.of_string "Hello Server over SSL") pipe_w
+        in
+        printf "Client has connected, writing 1 line of data...\n";
+        Writer.write w "Hello!\n";
+        let%bind () = Writer.close w in
+        let%bind () = closed_and_flushed in
+        Ssl.Connection.close ssl;
+        let%bind () = Ssl.Connection.closed ssl >>| Or_error.ok_exn in
+        Writer.flushed tcp_w)
     >>= Tcp.Server.close_finished
   ;;
 

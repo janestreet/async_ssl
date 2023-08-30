@@ -3,7 +3,6 @@
     This module allows you to create an SSL client and server, with encrypted
     communication between both. *)
 
-
 open! Core
 open! Async
 module Version : module type of Version
@@ -78,12 +77,11 @@ module Override_security_level : sig
       We expose this flag as a break glass work around until the problematic certificates
       can be updated. *)
   val insecure_do_not_use : unit -> t
-  [@@alert
-    flawed_security
-      "Only use this as a last resort stop gap until you can get the problematic \
-       certificates re-issued."]
+    [@@alert
+      flawed_security
+        "Only use this as a last resort stop gap until you can get the problematic \
+         certificates re-issued."]
 end
-
 
 (** Creates either an SSL client or server.
 
@@ -145,13 +143,12 @@ end
     The [hostname] sets the hostname to pass to the server using the SNI extension.
 *)
 
-
 val client
   :  ?version:Version.t
   -> ?options:Opt.t list
   -> ?name:string
   -> ?hostname:string
-  (** Use [allowed_ciphers] to control which ciphers should be used.  See CIPHERS(1), and
+       (** Use [allowed_ciphers] to control which ciphers should be used.  See CIPHERS(1), and
       `openssl ciphers -v`.
 
       If unspecified, [allowed_ciphers] defaults to [`Secure], which is a list derived
@@ -173,7 +170,7 @@ val client
   -> ?ca_path:string
   -> ?crt_file:string
   -> ?key_file:string
-  (** Use [verify_modes] to control what verification SSL does as part of the handshake.
+       (** Use [verify_modes] to control what verification SSL does as part of the handshake.
       To see the full description of the available options see the notes on the manpage
       for SSL_CTX_set_verify(3) on your system.
 
@@ -186,7 +183,7 @@ val client
       this to [Verify_none]. *)
   -> ?verify_modes:Verify_mode.t list
   -> ?session:Session.t
-  (** Break glass if you are stuck using a certificate/encryption that openssl considers
+       (** Break glass if you are stuck using a certificate/encryption that openssl considers
       insecure. Only set this in exceptional circumstances. *)
   -> ?override_security_level:Override_security_level.t
   -> ?alpn_protocols:string list
@@ -201,16 +198,16 @@ val server
   :  ?version:Version.t
   -> ?options:Opt.t list
   -> ?name:string
-  (** Use [allowed_ciphers] to control which ciphers should be used. See comment in
+       (** Use [allowed_ciphers] to control which ciphers should be used. See comment in
       [client] above for more details. *)
   -> ?allowed_ciphers:[ `Secure | `Openssl_default | `Only of string list ]
   -> ?ca_file:string
   -> ?ca_path:string
-  (** Use [verify_modes] to control what verification SSL does as part of the handshake.
+       (** Use [verify_modes] to control what verification SSL does as part of the handshake.
       The default for servers is [Verify_none], meaning no client certificate request is
       sent to the client. *)
   -> ?verify_modes:Verify_mode.t list
-  (** Break glass if you are stuck using a certificate/encryption that openssl considers
+       (** Break glass if you are stuck using a certificate/encryption that openssl considers
       insecure. Only set this in exceptional circumstances. *)
   -> ?override_security_level:Override_security_level.t
   -> ?alpn_protocols:string list

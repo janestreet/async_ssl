@@ -22,20 +22,20 @@ module Client = struct
   [@@deriving sexp_of, fields ~getters ~iterators:create]
 
   let create
-        ?(verify_modes = [ Verify_mode.Verify_peer ])
-        ?(tls_options = Opt.[ No_sslv2; No_sslv3; No_tlsv1; No_tlsv1_1 ])
-        ?(allowed_ciphers = `Secure)
-        ?crt_file
-        ?key_file
-        ?session
-        ?connection_name
-        ?override_security_level
-        ?alpn_protocols
-        ~remote_hostname
-        ~ca_file
-        ~ca_path
-        ~verify_callback
-        ()
+    ?(verify_modes = [ Verify_mode.Verify_peer ])
+    ?(tls_options = Opt.[ No_sslv2; No_sslv3; No_tlsv1; No_tlsv1_1 ])
+    ?(allowed_ciphers = `Secure)
+    ?crt_file
+    ?key_file
+    ?session
+    ?connection_name
+    ?override_security_level
+    ?alpn_protocols
+    ~remote_hostname
+    ~ca_file
+    ~ca_path
+    ~verify_callback
+    ()
     =
     Fields.create
       ~remote_hostname
@@ -71,16 +71,16 @@ module Server = struct
   [@@deriving sexp_of, fields ~getters ~iterators:create]
 
   let create
-        ?verify_modes
-        ?(tls_options = Opt.[ No_sslv2; No_sslv3; No_tlsv1; No_tlsv1_1 ])
-        ?(allowed_ciphers = `Secure)
-        ?override_security_level
-        ?alpn_protocols
-        ~crt_file
-        ~key_file
-        ~ca_file
-        ~ca_path
-        ()
+    ?verify_modes
+    ?(tls_options = Opt.[ No_sslv2; No_sslv3; No_tlsv1; No_tlsv1_1 ])
+    ?(allowed_ciphers = `Secure)
+    ?override_security_level
+    ?alpn_protocols
+    ~crt_file
+    ~key_file
+    ~ca_file
+    ~ca_path
+    ()
     =
     Fields.create
       ~verify_modes

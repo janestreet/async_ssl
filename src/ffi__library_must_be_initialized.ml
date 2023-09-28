@@ -189,11 +189,14 @@ module Ssl_ctx = struct
   ;;
 
   let use_certificate_chain_and_key_files ~crt_file ~key_file ctx =
-    let error i =
-      Deferred.Or_error.error
-        "Could not set default verify paths."
-        (`Return_value i, `Errors (get_error_stack ()))
-        [%sexp_of: [ `Return_value of int ] * [ `Errors of string list ]]
+    let error message return_value =
+      Deferred.Or_error.error_s
+        [%message
+          message
+            (return_value : int)
+            ~errors:(get_error_stack () : string list)
+            ~crt_file
+            ~key_file]
     in
     match%bind
       In_thread.run (fun () -> try_certificate_chain_and_failover_to_asn1 ctx crt_file)
@@ -201,8 +204,8 @@ module Ssl_ctx = struct
     | 1 ->
       (match%bind In_thread.run (fun () -> try_both_private_key_formats ctx key_file) with
        | 1 -> Deferred.Or_error.return ()
-       | x -> error x)
-    | x -> error x
+       | x -> error "Could not use private key" x)
+    | x -> error "Could not use certificate" x
   ;;
 
   let alpn_protocols_to_char_vector protocols =
@@ -551,7 +554,7 @@ module Ssl = struct
           | Error hostname_error ->
             (match X509.check_ip cert name with
              | Ok () -> Ok ()
-             (* We prefer returning [hostname_error] and drop error output from 
+             (* We prefer returning [hostname_error] and drop error output from
                 [check_ip] to avoid introducing more confusing output. *)
              | Error (_ : Error.t) -> Error hostname_error))
         ~finally:(fun () -> Bindings.X509.free cert)

@@ -20,7 +20,7 @@ depends: [
   "conf-libssl"
   "ctypes"            {>= "0.18.0"}
   "ctypes-foreign"
-  "dune"              {>= "2.0.0"}
+  "dune"              {>= "3.11.0"}
   "dune-configurator"
 ]
 available: arch != "arm32" & arch != "x86_32"

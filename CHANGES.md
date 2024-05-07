@@ -1,3 +1,13 @@
+## Release v0.17.0
+- Fix known compatibility issues with OpenSSL 3.x (particularly on Mac OS X and some
+  Linux distributions)
+- Added basic support for using ALPN on the client and server side for protocol selection.
+  You can specify which protocols your support when initializing the client/server using the [?alpn_protocols]
+  argument, and then determine which protocol was negotiated using [Tls.Connection.alpn_selected].
+- Improved hostname + certificate verification logic.
+  We now use the openssl 1.1+ verification functionality directly instead of relying on
+  our own (much slower) logic using ocaml_x509.
+
 ## Release v0.16.0
 
 - Removed Support for OpenSSL 1.0. We now require OpenSSL 1.1.x.
@@ -56,4 +66,3 @@
 ## 111.06.00
 
 Initial release
-

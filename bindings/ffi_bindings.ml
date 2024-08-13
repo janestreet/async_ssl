@@ -3,8 +3,8 @@ open! Base
 [%%import "config.h"]
 
 module Voidp (T : sig
-  val name : string
-end) : sig
+    val name : string
+  end) : sig
   type t [@@deriving sexp_of]
 
   val t : t Ctypes.typ
@@ -21,20 +21,20 @@ end = struct
 end
 
 module Bignum = Voidp (struct
-  let name = "Bignum"
-end)
+    let name = "Bignum"
+  end)
 
 module Ssl = Voidp (struct
-  let name = "Ssl"
-end)
+    let name = "Ssl"
+  end)
 
 module Rsa = Voidp (struct
-  let name = "Rsa"
-end)
+    let name = "Rsa"
+  end)
 
 module Dh = Voidp (struct
-  let name = "Dh"
-end)
+    let name = "Dh"
+  end)
 
 module Progress_callback =
   (val Foreign.dynamic_funptr Ctypes.(int @-> int @-> ptr void @-> returning void))
@@ -61,11 +61,13 @@ module Types (F : Cstubs.Types.TYPE) = struct
         ; "SSL_OP_SINGLE_ECDH_USE"
         ]
         ~f:(fun c_sym ->
-        let ml_sym = String.chop_prefix_exn c_sym ~prefix:"SSL_OP_" |> String.lowercase in
-        let fallback = "Unsigned.ULong.zero" in
-        print_endline
-          [%string
-            {|
+          let ml_sym =
+            String.chop_prefix_exn c_sym ~prefix:"SSL_OP_" |> String.lowercase
+          in
+          let fallback = "Unsigned.ULong.zero" in
+          print_endline
+            [%string
+              {|
     [%%if defined JSC_%{c_sym}]
     let %{ml_sym} = F.constant "%{c_sym}" F.ulong
     [%%else]
@@ -206,8 +208,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   *)
   module Ssl_method = struct
     include Voidp (struct
-      let name = "Ssl_method"
-    end)
+        let name = "Ssl_method"
+      end)
 
     let dummy name () = failwith (Printf.sprintf "Ssl_method %s not implemented" name)
     let implemented name = foreign name Ctypes.(void @-> returning t)
@@ -226,15 +228,17 @@ module Bindings (F : Cstubs.FOREIGN) = struct
         ; "TLSv1_3_method"
         ]
         ~f:(fun c_sym ->
-        let ml_sym = String.chop_suffix_exn c_sym ~suffix:"_method" |> String.lowercase in
-        let fallback =
-          if String.equal c_sym "TLS_method"
-          then "sslv23"
-          else [%string {|helper "%{c_sym}" dummy|}]
-        in
-        print_endline
-          [%string
-            {|
+          let ml_sym =
+            String.chop_suffix_exn c_sym ~suffix:"_method" |> String.lowercase
+          in
+          let fallback =
+            if String.equal c_sym "TLS_method"
+            then "sslv23"
+            else [%string {|helper "%{c_sym}" dummy|}]
+          in
+          print_endline
+            [%string
+              {|
     [%%if defined JSC_%{c_sym}]
     let %{ml_sym} = helper "%{c_sym}" implemented
     [%%else]
@@ -349,8 +353,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   module Ssl_ctx = struct
     include Voidp (struct
-      let name = "Ssl_ctx"
-    end)
+        let name = "Ssl_ctx"
+      end)
 
     (* free with SSL_CTX_free() (source: manpage of SSL_CTX_free(3)) *)
     let new_ = foreign "SSL_CTX_new" Ctypes.(Ssl_method.t @-> returning t_opt)
@@ -417,8 +421,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   module Bio = struct
     include Voidp (struct
-      let name = "Bio"
-    end)
+        let name = "Bio"
+      end)
 
     (* for use in ctypes signatures *)
 
@@ -433,8 +437,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   module ASN1_object = struct
     include Voidp (struct
-      let name = "ASN1_object"
-    end)
+        let name = "ASN1_object"
+      end)
 
     let obj2nid = foreign "OBJ_obj2nid" Ctypes.(t @-> returning int)
 
@@ -446,8 +450,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   module ASN1_string = struct
     include Voidp (struct
-      let name = "ASN1_string"
-    end)
+        let name = "ASN1_string"
+      end)
 
     let length = foreign "ASN1_STRING_length" Ctypes.(t @-> returning int)
 
@@ -457,8 +461,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   module X509_name_entry = struct
     include Voidp (struct
-      let name = "X509_name_entry"
-    end)
+        let name = "X509_name_entry"
+      end)
 
     (* returns pointer to field in [t], do not free (source: x509name.c in openssl
        source) *)
@@ -475,8 +479,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   module X509_name = struct
     include Voidp (struct
-      let name = "X509_name"
-    end)
+        let name = "X509_name"
+      end)
 
     let entry_count = foreign "X509_NAME_entry_count" Ctypes.(t @-> returning int)
 
@@ -489,16 +493,16 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   module EVP = struct
     include Voidp (struct
-      let name = "EVP"
-    end)
+        let name = "EVP"
+      end)
 
     let sha1 = foreign "EVP_sha1" Ctypes.(void @-> returning t)
   end
 
   module X509 = struct
     include Voidp (struct
-      let name = "X509"
-    end)
+        let name = "X509"
+      end)
 
     (* returns internal pointer, do not free (source: manpage of
        X509_get_subject_name(3)) *)
@@ -543,8 +547,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   module Ssl_session = struct
     include Voidp (struct
-      let name = "Ssl_session"
-    end)
+        let name = "Ssl_session"
+      end)
 
     (* free with SSL_SESSION_free() (source: manpage of SSL_SESSION_free(3)) *)
     let new_ = foreign "SSL_SESSION_new" Ctypes.(void @-> returning t_opt)

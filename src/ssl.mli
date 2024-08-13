@@ -77,10 +77,10 @@ module Override_security_level : sig
       We expose this flag as a break glass work around until the problematic certificates
       can be updated. *)
   val insecure_do_not_use : unit -> t
-    [@@alert
-      flawed_security
-        "Only use this as a last resort stop gap until you can get the problematic \
-         certificates re-issued."]
+  [@@alert
+    flawed_security
+      "Only use this as a last resort stop gap until you can get the problematic \
+       certificates re-issued."]
 end
 
 (** Creates either an SSL client or server.

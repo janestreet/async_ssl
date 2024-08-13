@@ -551,46 +551,46 @@ let context_exn =
         , key_file
         , override_security_level
         , alpn_protocols )
-        ->
-    let (module Ffi) = force ffi in
-    let ctx = Ffi.Ssl_ctx.create_exn version in
-    let error e =
-      failwiths ~here:[%here] "Could not initialize ssl context" e [%sexp_of: Error.t]
-    in
-    Option.iter
-      override_security_level
-      ~f:(Ffi.Ssl_ctx.override_default_insecure__set_security_level ctx);
-    match%bind
-      match crt_file, key_file with
-      | Some crt_file, Some key_file ->
-        Ffi.Ssl_ctx.use_certificate_chain_and_key_files ~crt_file ~key_file ctx
-      | _, _ -> return (Ok ())
-    with
-    | Error e -> error e
-    | Ok () ->
-      (match%bind
-         match ca_file, ca_path with
-         | None, None -> return (Ok (Ffi.Ssl_ctx.set_default_verify_paths ctx))
-         | _, _ -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
+      ->
+       let (module Ffi) = force ffi in
+       let ctx = Ffi.Ssl_ctx.create_exn version in
+       let error e =
+         failwiths ~here:[%here] "Could not initialize ssl context" e [%sexp_of: Error.t]
+       in
+       Option.iter
+         override_security_level
+         ~f:(Ffi.Ssl_ctx.override_default_insecure__set_security_level ctx);
+       match%bind
+         match crt_file, key_file with
+         | Some crt_file, Some key_file ->
+           Ffi.Ssl_ctx.use_certificate_chain_and_key_files ~crt_file ~key_file ctx
+         | _, _ -> return (Ok ())
        with
        | Error e -> error e
        | Ok () ->
          (match%bind
-            match alpn_protocols with
-            | `Client None | `Server None -> return (Ok ())
-            | `Client (Some protocols) ->
-              Ffi.Ssl_ctx.set_alpn_protocols_client ctx protocols |> return
-            | `Server (Some protocols) ->
-              Ffi.Ssl_ctx.set_alpn_protocols_server ctx protocols |> return
+            match ca_file, ca_path with
+            | None, None -> return (Ok (Ffi.Ssl_ctx.set_default_verify_paths ctx))
+            | _, _ -> Ffi.Ssl_ctx.load_verify_locations ctx ?ca_file ?ca_path
           with
           | Error e -> error e
           | Ok () ->
-            let session_id_context =
-              Option.value name ~default:"default_session_id_context"
-            in
-            Ffi.Ssl_ctx.set_session_id_context ctx session_id_context;
-            Ffi.Ssl_ctx.set_options ctx options;
-            return ctx)))
+            (match%bind
+               match alpn_protocols with
+               | `Client None | `Server None -> return (Ok ())
+               | `Client (Some protocols) ->
+                 Ffi.Ssl_ctx.set_alpn_protocols_client ctx protocols |> return
+               | `Server (Some protocols) ->
+                 Ffi.Ssl_ctx.set_alpn_protocols_server ctx protocols |> return
+             with
+             | Error e -> error e
+             | Ok () ->
+               let session_id_context =
+                 Option.value name ~default:"default_session_id_context"
+               in
+               Ffi.Ssl_ctx.set_session_id_context ctx session_id_context;
+               Ffi.Ssl_ctx.set_options ctx options;
+               return ctx)))
 ;;
 
 let client

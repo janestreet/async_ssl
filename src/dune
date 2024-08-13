@@ -24,9 +24,11 @@
   (language c)
   (names ffi_generated_stubs)
   (flags
-   (:standard \ -Werror -pedantic -Wall -Wunused)
+   (:standard \ -Werror -pedantic -Wall -Wunused -Wincompatible-pointer-types)
    -w
-   (:include ../bindings/openssl-ccopt.sexp)))
+   (:include ../bindings/openssl-ccopt.sexp)
+   -Wno-int-conversion
+   -Wno-implicit-function-declaration))
  (name async_ssl)
  (public_name async_ssl)
  (modules import version opt verify_mode ffi_generated_types ffi_generated
@@ -35,6 +37,6 @@
  (c_library_flags
   :standard
   (:include ../bindings/openssl-cclib.sexp))
- (libraries async core async_ssl_bindings ctypes.stubs ctypes)
+ (libraries async core async_ssl_bindings ctypes.stubs ctypes integers)
  (preprocess
   (pps ppx_jane)))

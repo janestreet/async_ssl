@@ -155,7 +155,7 @@ typedef struct tlsextalpnctx_st {
   size_t len;
 } tlsextalpnctx;
 
-static int async_ssl__alpn_cb(SSL *s, const unsigned char **out, unsigned char *outlen,
+static int async_ssl__alpn_cb(SSL __attribute__((unused)) *s, const unsigned char **out, unsigned char *outlen,
                    const unsigned char *in, unsigned int inlen, void *arg) {
     tlsextalpnctx *alpn_ctx = arg;
 

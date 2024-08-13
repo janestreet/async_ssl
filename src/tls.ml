@@ -157,14 +157,14 @@ let listen
     ~on_handler_error
     where_to_listen
     (fun sock r w ->
-    let%bind time_source =
-      match advance_clock_before_tls_negotiation with
-      | None -> return (Time_source.wall_clock ())
-      | Some (time_source, delay) ->
-        let%map () = Time_source.advance_by_alarms_by time_source delay in
-        Time_source.read_only time_source
-    in
-    wrap_server_connection tls_settings r w ~f:(f sock) ~time_source)
+       let%bind time_source =
+         match advance_clock_before_tls_negotiation with
+         | None -> return (Time_source.wall_clock ())
+         | Some (time_source, delay) ->
+           let%map () = Time_source.advance_by_alarms_by time_source delay in
+           Time_source.read_only time_source
+       in
+       wrap_server_connection tls_settings r w ~f:(f sock) ~time_source)
 ;;
 
 let wrap_client_connection ?timeout tls_settings outer_rd outer_wr ~f =
@@ -201,12 +201,12 @@ let wrap_client_connection ?timeout tls_settings outer_rd outer_wr ~f =
     outer_rd
     outer_wr
     ~f:(fun conn inner_rd inner_wr ->
-    match%bind verify_callback conn with
-    | Error connection_verification_error ->
-      raise_s
-        [%message
-          "Connection verification failed." (connection_verification_error : Error.t)]
-    | Ok () -> f conn inner_rd inner_wr)
+      match%bind verify_callback conn with
+      | Error connection_verification_error ->
+        raise_s
+          [%message
+            "Connection verification failed." (connection_verification_error : Error.t)]
+      | Ok () -> f conn inner_rd inner_wr)
 ;;
 
 let with_connection ?interrupt ?timeout tls_settings where_to_connect ~f ~time_source =
@@ -216,18 +216,18 @@ let with_connection ?interrupt ?timeout tls_settings where_to_connect ~f ~time_s
     ?timeout:(Option.map timeout ~f:Time_ns.Span.to_span_float_round_nearest)
     where_to_connect
     (fun socket outer_rd outer_wr ->
-    let timeout =
-      Option.map timeout ~f:(fun timeout ->
-        let tcp_time_elapsed = Time_ns.diff (Time_source.now time_source) start_time in
-        Time_ns.Span.(timeout - tcp_time_elapsed))
-    in
-    wrap_client_connection
-      ?timeout
-      tls_settings
-      outer_rd
-      outer_wr
-      ~f:(f socket)
-      ~time_source)
+       let timeout =
+         Option.map timeout ~f:(fun timeout ->
+           let tcp_time_elapsed = Time_ns.diff (Time_source.now time_source) start_time in
+           Time_ns.Span.(timeout - tcp_time_elapsed))
+       in
+       wrap_client_connection
+         ?timeout
+         tls_settings
+         outer_rd
+         outer_wr
+         ~f:(f socket)
+         ~time_source)
 ;;
 
 module For_testing = struct
@@ -253,8 +253,8 @@ module Expert = struct
          tls_settings
          where_to_connect
          ~f:(fun sock conn r w ->
-         Ivar.fill_exn conn_ivar (sock, conn, r, w);
-         Deferred.any [ Reader.close_finished r; Writer.close_finished w ]));
+           Ivar.fill_exn conn_ivar (sock, conn, r, w);
+           Deferred.any [ Reader.close_finished r; Writer.close_finished w ]));
     Ivar.read conn_ivar
   ;;
 

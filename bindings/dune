@@ -10,7 +10,7 @@
  (deps discover.c openssl-ccopt openssl-cclib)
  (action
   (bash
-    "%{cc} $(< openssl-ccopt) discover.c $(< openssl-cclib) -ldl -o discover.exe")))
+    "%{cc} $(< openssl-ccopt) discover.c $(< openssl-cclib) $([[ $(uname) == *BSD ]] || echo -n -ldl) -o discover.exe")))
 
 (rule
  (targets config.h)

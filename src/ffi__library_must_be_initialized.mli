@@ -4,11 +4,10 @@
     For streaming this stuff, see:
     <http://funcptr.net/2012/04/08/openssl-as-a-filter-%28or-non-blocking-openssl%29/>
 
-    This module is for use with Async, which has no threads. You void your warranty
-    by calling any of these functions from multiple threads at the same time.
+    This module is for use with Async, which has no threads. You void your warranty by
+    calling any of these functions from multiple threads at the same time.
 
-    You MUST call [Initialize.initialize ()] before calling any of these functions.
-*)
+    You MUST call [Initialize.initialize ()] before calling any of these functions. *)
 open! Core
 
 open! Async
@@ -34,38 +33,33 @@ module Ssl_ctx : sig
   (** Initialize a new SSL context, out of which all SSL connections are allocated. *)
   val create_exn : Version.t -> t
 
-  (** Set OpenSSL Security level, see [man SSL_CTX_set_security_level].
-      0 - is weakest/no security
-      5 - is highest security,
-      Default depends on System/OpenSSL version. *)
+  (** Set OpenSSL Security level, see [man SSL_CTX_set_security_level]. 0 - is weakest/no
+      security 5 - is highest security, Default depends on System/OpenSSL version. *)
   val override_default_insecure__set_security_level : t -> int -> unit
 
-  (** Set options on the SSL context, see [Opt] for available options.  Currently used for
+  (** Set options on the SSL context, see [Opt] for available options. Currently used for
       disabling protocol versions. *)
   val set_options : t -> Opt.t list -> unit
 
   (** Specifies the locations for the context, at which CA certificates for verification
-      purposes are located.  The certificates available via [ca_file] and [ca_path] are
+      purposes are located. The certificates available via [ca_file] and [ca_path] are
       trusted.
 
       When used in a server the certificates are used, if necessary, to fill in holes when
       the server is building its own certificate chain. For this use-case they need not be
       CA certificates, and in fact will likely need to include intermediate certificates.
 
-      If [ca_file] is not [None], it points to a file of CA certificates in PEM format.
-      It may have more than one certificate.
+      If [ca_file] is not [None], it points to a file of CA certificates in PEM format. It
+      may have more than one certificate.
 
       If [ca_path] is not [None], it points to a directory containing CA certificates in
-      PEM format.  The files each contain one CA certificate.  The certificates in
-      [ca_path] are only looked up lazily, not eagarly.
+      PEM format. The files each contain one CA certificate. The certificates in [ca_path]
+      are only looked up lazily, not eagarly.
 
       Prepare the directory [/some/where/certs] containing several CA certificates for use
       as [ca_path]:
 
-      [{
-      cd /some/where/certs
-      c_rehash .
-      }]
+      [{ cd /some/where/certs c_rehash . }]
 
       If both [ca_file] and [ca_path] are specified, the certificates in [ca_file] will be
       searched before the certificates in [ca_path].
@@ -79,8 +73,7 @@ module Ssl_ctx : sig
     -> unit Or_error.t Deferred.t
 
   (** Tell OpenSSL to use its compiled-in defaults for locating CA certificates for
-      verification purposes.  This should be called if [load_verify_locations] is not
-      used. *)
+      verification purposes. This should be called if [load_verify_locations] is not used. *)
   val set_default_verify_paths : t -> unit
 
   (** Set context within which session can be reused, e.g. the name of the application
@@ -97,10 +90,10 @@ module Ssl_ctx : sig
     -> t
     -> unit Deferred.Or_error.t
 
-  (** Set the ALPN protocols that will be accepted by [SSL.t]'s created with this context.*)
+  (** Set the ALPN protocols that will be accepted by [SSL.t]'s created with this context. *)
   val set_alpn_protocols_client : t -> string list -> unit Or_error.t
 
-  (** Same as above, but for the server.*)
+  (** Same as above, but for the server. *)
   val set_alpn_protocols_server : t -> string list -> unit Or_error.t
 end
 
@@ -114,17 +107,15 @@ module Bio : sig
   (** Read some bytes from a BIO.
 
       Returns either the amount of data successfully read (if the return value is
-      positive) or that no data was successfully read if the result is 0 or -1.  If the
-      return value is -2 then the operation is not implemented in the specific BIO
-      type. *)
+      positive) or that no data was successfully read if the result is 0 or -1. If the
+      return value is -2 then the operation is not implemented in the specific BIO type. *)
   val read : t -> buf:char ptr -> len:int -> int
 
   (** Write some bytes to a BIO.
 
       Returns either the amount of data successfully written (if the return value is
-      positive) or that no data was successfully written if the result is 0 or -1.  If the
-      return value is -2 then the operation is not implemented in the specific BIO
-      type. *)
+      positive) or that no data was successfully written if the result is 0 or -1. If the
+      return value is -2 then the operation is not implemented in the specific BIO type. *)
   val write : t -> buf:string -> len:int -> int
 end
 
@@ -220,8 +211,8 @@ module Ssl : sig
   val get1_session : t -> Ssl_session.t option
   val set_tlsext_host_name : t -> string -> unit Or_error.t
 
-  (** Set the list of available ciphers for client or server connections.
-      This is really [SSL_set_cipher_list t (String.concat ~sep:":" ("-ALL" ::  ciphers))]. *)
+  (** Set the list of available ciphers for client or server connections. This is really
+      [SSL_set_cipher_list t (String.concat ~sep:":" ("-ALL" ::  ciphers))]. *)
 
   val set_cipher_list_exn : t -> string list -> unit
   val get_cipher_list : t -> string list
@@ -231,5 +222,5 @@ module Ssl : sig
 end
 
 (** Pops all errors off of the openssl error stack, returning them as a list of
-    human-readable strings.  The most recent errors will be at the head of the list. *)
+    human-readable strings. The most recent errors will be at the head of the list. *)
 val get_error_stack : unit -> string list

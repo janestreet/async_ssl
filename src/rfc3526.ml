@@ -1,7 +1,6 @@
 open! Core
 
-(** These are the MODP groups specified in RFC3526
-    https://tools.ietf.org/html/rfc3526 *)
+(** These are the MODP groups specified in RFC3526 https://tools.ietf.org/html/rfc3526 *)
 
 let make ~prime ~generator =
   Ffi__library_must_be_initialized.Dh.create

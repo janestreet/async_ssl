@@ -198,7 +198,7 @@ module Connection = struct
 
   let raise_with_ssl_errors () =
     let (module Ffi) = force ffi in
-    failwiths ~here:[%here] "Ssl_error" (Ffi.get_error_stack ()) [%sexp_of: string list]
+    failwiths "Ssl_error" (Ffi.get_error_stack ()) [%sexp_of: string list]
   ;;
 
   let closed t = Ivar.read t.closed
@@ -409,7 +409,6 @@ module Connection = struct
         | Error e ->
           (* should never happen *)
           failwiths
-            ~here:[%here]
             "Unexpected SSL error during write."
             e
             [%sexp_of: [ `Session_closed | `Stream_eof ]])
@@ -530,7 +529,7 @@ module Session = struct
   let remember t ~conn =
     match Set_once.get t with
     | Some _ -> ()
-    | None -> Option.iter (State.get ~conn) ~f:(Set_once.set_exn t [%here])
+    | None -> Option.iter (State.get ~conn) ~f:(Set_once.set_exn t ~here:[%here])
   ;;
 
   let reuse t ~conn = Option.iter (Set_once.get t) ~f:(State.reuse ~conn)
@@ -554,9 +553,7 @@ let context_exn =
       ->
        let (module Ffi) = force ffi in
        let ctx = Ffi.Ssl_ctx.create_exn version in
-       let error e =
-         failwiths ~here:[%here] "Could not initialize ssl context" e [%sexp_of: Error.t]
-       in
+       let error e = failwiths "Could not initialize ssl context" e [%sexp_of: Error.t] in
        Option.iter
          override_security_level
          ~f:(Ffi.Ssl_ctx.override_default_insecure__set_security_level ctx);
@@ -839,11 +836,9 @@ module%test _ = struct
         let%bind server_exit_status = Connection.closed server_conn in
         Or_error.ok_exn server_exit_status;
         if on_server <> "hello, server."
-        then
-          failwiths ~here:[%here] "No hello world to server" on_server [%sexp_of: string];
+        then failwiths "No hello world to server" on_server [%sexp_of: string];
         if on_client <> "hello, client."
-        then
-          failwiths ~here:[%here] "No hello world to client" on_client [%sexp_of: string];
+        then failwiths "No hello world to client" on_client [%sexp_of: string];
         return ())
     in
     let run_twice () =

@@ -9,8 +9,7 @@ open! Core
     Best practice: Leave the "version" specified as [Sslv23] (see version.mli) and use the
     [No_...] options below to mask off undesired protocol versions.
 
-    The current defaults for [Version] and [Opt] will enable only TLSv1.2.
-*)
+    The current defaults for [Version] and [Opt] will enable only TLSv1.2. *)
 
 type t =
   | No_sslv2

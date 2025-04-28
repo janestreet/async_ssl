@@ -34,7 +34,7 @@ val wrap_server_connection
 
 (** Establish a TCP connection to a TLS server and call [f] with the encrypted channel.
 
-    The connection is shutdown cleanly  when [f] returns. *)
+    The connection is shutdown cleanly when [f] returns. *)
 val with_connection
   :  ?interrupt:unit Deferred.t
   -> ?timeout:Time_ns.Span.t
@@ -74,8 +74,8 @@ module Expert : sig
 
   (** [wrap_client_connection] will immediately tear down the connection as soon as [f]
       returns. This doesn't accommodate cases where ['res] contains more [Async]
-      primitives, such as a [Pipe.Reader.t]. [wrap_client_connection_and_stay_open]
-      gives callers the agency to control when this teardown occurs.
+      primitives, such as a [Pipe.Reader.t]. [wrap_client_connection_and_stay_open] gives
+      callers the agency to control when this teardown occurs.
 
       Callers must ensure that [`Do_not_close_until] becomes determined to avoid leaking
       file descriptors. The [unit Deferred.t] returned in [`Do_not_close_until] is also
@@ -84,8 +84,7 @@ module Expert : sig
       down.
 
       It is an error to access the [Reader.t]/[Writer.t] once [`Do_not_close_until] has
-      become determined (doing so may result in weird IO errors).
-  *)
+      become determined (doing so may result in weird IO errors). *)
   val wrap_client_connection_and_stay_open
     :  Config.Client.t
     -> Reader.t

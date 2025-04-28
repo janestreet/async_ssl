@@ -15,7 +15,7 @@ let initialize () =
   match Set_once.get initialized with
   | Some () -> ()
   | None ->
-    Set_once.set_exn initialized [%here] ();
+    Set_once.set_exn initialized ();
     (* Static initialization *)
     Bindings.ssl_load_error_strings ();
     Bindings.err_load_crypto_strings ();

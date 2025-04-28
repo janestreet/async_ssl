@@ -145,7 +145,6 @@ module Ssl_ctx = struct
     | 1 -> ()
     | x ->
       failwiths
-        ~here:[%here]
         "Could not set session id context."
         (`Return_value x, `Errors (get_error_stack ()))
         [%sexp_of: [ `Return_value of int ] * [ `Errors of string list ]]
@@ -170,7 +169,6 @@ module Ssl_ctx = struct
     | 1 -> ()
     | x ->
       failwiths
-        ~here:[%here]
         "Could not set default verify paths."
         (`Return_value x, `Errors (get_error_stack ()))
         [%sexp_of: [ `Return_value of int ] * [ `Errors of string list ]]

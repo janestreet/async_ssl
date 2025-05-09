@@ -1,4 +1,5 @@
 module Config = Config
+module Ctypes = Ctypes
 module Ffi__library_must_be_initialized = Ffi__library_must_be_initialized
 module Ffi_generated = Ffi_generated
 module Ffi_generated_types = Ffi_generated_types

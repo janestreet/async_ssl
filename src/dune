@@ -32,11 +32,9 @@
  (name async_ssl)
  (public_name async_ssl)
  (modules import version opt verify_mode ffi_generated_types ffi_generated
-   ffi__library_must_be_initialized rfc3526 ssl initialize std config tls)
+   ffi__library_must_be_initialized rfc3526 ssl initialize std config tls
+   async_ssl)
  (flags :standard -w -9-27-32-34)
- (c_library_flags
-  :standard
-  (:include ../bindings/openssl-cclib.sexp))
  (libraries async core async_ssl_bindings ctypes.stubs ctypes integers)
  (preprocess
   (pps ppx_jane)))

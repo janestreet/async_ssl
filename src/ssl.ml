@@ -19,7 +19,7 @@ let ffi =
 ;;
 
 let secure_ciphers =
-  [ (* from: cipherli.st *) "EECDH+AESGCM"; "EDH+AESGCM"; "AES256+EECDH"; "AES256+EDH" ]
+  [ "EECDH+AESGCM"; "EDH+AESGCM"; "AES256+EECDH"; "AES256+EDH"; "!SSLv3"; "!TLSv1.0" ]
 ;;
 
 let presumably_secure_groups = [ "P-256"; "P-521"; "P-384"; "X25519" ]

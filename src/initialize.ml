@@ -9,8 +9,8 @@ let add_all_algorithms () =
   Bindings.add_all_digests ()
 ;;
 
-(* openssl initialization method, run during module initialization. Hopefully
-   before anything uses OpenSSL. *)
+(* openssl initialization method, run during module initialization. Hopefully before
+   anything uses OpenSSL. *)
 let initialize () =
   match Set_once.get initialized with
   | Some () -> ()
@@ -25,8 +25,8 @@ let initialize () =
     Bindings.Engine.load_builtin_engines ();
     (* Finish engine registration *)
     Bindings.Engine.register_all_complete ();
-    (* SSL_library_init() initializes the SSL algorithms.
-       It always returns "1", so it is safe to discard the return value *)
+    (* SSL_library_init() initializes the SSL algorithms. It always returns "1", so it is
+       safe to discard the return value *)
     ignore (Bindings.init () : Unsigned.ulong);
     (* Load any other algorithms, just in case *)
     add_all_algorithms ()

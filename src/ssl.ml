@@ -73,12 +73,13 @@ module Connection = struct
     ; ctx : Ffi__library_must_be_initialized.Ssl_ctx.t
     ; client_or_server : [ `Client | `Server ]
         (* The reader and writer binary IO interfaces used by SSL to exchange data without
-       going through a file descriptor.  Strangely enough, to use SSL we _read from_ wbio
-       and _write to_ wbio.  The names are from the perspective of the SSL library. *)
+           going through a file descriptor. Strangely enough, to use SSL we _read from_
+           wbio and _write to_ wbio. The names are from the perspective of the SSL
+           library. *)
     ; rbio : Ffi__library_must_be_initialized.Bio.t
     ; wbio : Ffi__library_must_be_initialized.Bio.t
-        (* Reads and writes to/from C must go through a bigstring.  We share it in the record
-       to prevent needless reallocations. *)
+        (* Reads and writes to/from C must go through a bigstring. We share it in the
+           record to prevent needless reallocations. *)
     ; bstr : bigstring
     ; name : string
     ; app_to_ssl : string Pipe.Reader.t
@@ -103,7 +104,7 @@ module Connection = struct
     ~ssl_to_net
     =
     let (module Ffi) = force ffi in
-    (* SSL is transferred in 16 kB packets.  Therefore, it makes sense for our buffers to
+    (* SSL is transferred in 16 kB packets. Therefore, it makes sense for our buffers to
        be the same size. *)
     let ssl = Ffi.Ssl.create_exn ctx in
     Option.value_map hostname ~default:() ~f:(fun h ->
@@ -246,8 +247,8 @@ module Connection = struct
   let blen t = Bigstring.length t.bstr
   let bptr t = Ctypes.bigarray_start Ctypes.array1 t.bstr
 
-  (* Called when something goes horribly wrong. This makes sure that
-     resources don't leak when exceptional circumstances hit.
+  (* Called when something goes horribly wrong. This makes sure that resources don't leak
+     when exceptional circumstances hit.
 
      The SSL structure itself is freed by the GC finalizer.
   *)
@@ -261,10 +262,10 @@ module Connection = struct
 
   let close t = cleanup t
 
-  (* Write any pending data to ssl_to_net.  If you bind to the returned [unit Deferred.t],
+  (* Write any pending data to ssl_to_net. If you bind to the returned [unit Deferred.t],
      you wait until the write has completed all the way through the pipe to the end.
 
-     This drains wbio whether or not ssl_to_net is closed or not.  When ssl_to_net IS
+     This drains wbio whether or not ssl_to_net is closed or not. When ssl_to_net IS
      closed, we make sure to close its matching partner: app_to_ssl. *)
   let rec write_pending_to_net t =
     let (module Ffi) = force ffi in
@@ -294,11 +295,9 @@ module Connection = struct
       then (
         if verbose then Debug.amf [%here] "%s: ssl_to_net <- '%s'" t.name to_write;
         (* Its possible for two copies of [write_pending_to_net] to run concurrently
-           during session teardown.
-           Using [write_without_pushback] ensures that this write is atomic with the
-           [Bio.read] above.
-           We use [Pipe.pushback] at the top of the loop to allow the remote
-           end of the connection to throttle us. *)
+           during session teardown. Using [write_without_pushback] ensures that this write
+           is atomic with the [Bio.read] above. We use [Pipe.pushback] at the top of the
+           loop to allow the remote end of the connection to throttle us. *)
         Pipe.write_without_pushback t.ssl_to_net to_write)
       else (
         if verbose then Debug.amf [%here] "%s: closing app_to_ssl" t.name;
@@ -314,8 +313,8 @@ module Connection = struct
     return ()
   ;;
 
-  (* Runs an ssl function (either ssl_read or ssl_write), possibly retrying the call if
-     an error was returned. *)
+  (* Runs an ssl function (either ssl_read or ssl_write), possibly retrying the call if an
+     error was returned. *)
   let rec in_retry_wrapper
     : type a. t -> f:(unit -> (a, _) Result.t) -> (a, _) Result.t Deferred.t
     =
@@ -329,8 +328,8 @@ module Connection = struct
       if verbose then Debug.amf [%here] "%s: %s" t.name (E.sexp_of_t e |> Sexp.to_string);
       (match e with
        | E.Want_read ->
-         (* [Un]intuitively enough, if SSL wants a read, we need to write out all
-            pending data first. *)
+         (* [Un]intuitively enough, if SSL wants a read, we need to write out all pending
+            data first. *)
          let%bind () = flush t in
          (* Then, write the chunk of data from the net into the rbio and try again. *)
          (match%bind Pipe.read t.net_to_ssl with
@@ -338,8 +337,8 @@ module Connection = struct
             Ffi.Bio.write t.rbio ~buf:was_read ~len:(String.length was_read) |> ignore;
             (* Should never fail. It's an 'infinite' buffer. *)
             in_retry_wrapper t ~f
-          (* If the connection to the net died, we have to stop. Return an error,
-             and close its matching pipe. *)
+          (* If the connection to the net died, we have to stop. Return an error, and
+             close its matching pipe. *)
           | `Eof ->
             if verbose then Debug.amf [%here] "%s: closing ssl_to_app" t.name;
             Pipe.close t.ssl_to_app;
@@ -416,8 +415,7 @@ module Connection = struct
     go 0
   ;;
 
-  (* Runs the net -> ssl -> app data pump until either net_to_ssl or ssl_to_app
-     dies *)
+  (* Runs the net -> ssl -> app data pump until either net_to_ssl or ssl_to_app dies *)
   let rec run_reader_loop t =
     if verbose then Debug.amf [%here] "%s: BEGIN run_reader_loop" t.name;
     match%bind do_ssl_read t with
@@ -474,8 +472,8 @@ module Connection = struct
     if verbose then Debug.amf [%here] "%s: SSL stopped." t.name
   ;;
 
-  (* Close all pipes if exceptions leak out.  This will implicitly stop
-     [run_reader_loop] and [run_writer_loop], since they'll just keep getting EOFs. *)
+  (* Close all pipes if exceptions leak out. This will implicitly stop [run_reader_loop]
+     and [run_writer_loop], since they'll just keep getting EOFs. *)
   let with_cleanup t ~f =
     let%map result =
       Deferred.Or_error.try_with ~run:`Schedule ~rest:`Log ~name:"ssl_pipe" f
@@ -702,7 +700,7 @@ module%test _ = struct
     if not (Pipe.is_closed p) then failwith (name ^ " was left open.")
   ;;
 
-  (*
+  (*=
      The pipe names are short because there's a lot of them and it got annoying to type.
        Please refer to this ascii art for an explanation.
 
@@ -735,7 +733,7 @@ module%test _ = struct
     let session = Session.create () in
     let check_version conn =
       (* Since Version.default is [Sslv23], we expect to negotiate the highest allowed
-           protocol version, which is [Tlsv1_3] *)
+         protocol version, which is [Tlsv1_3] *)
       [%test_result: Version.t] (Connection.version conn) ~expect:Version.Tlsv1_3
     in
     let check_session_reused conn ~expect =
@@ -760,11 +758,10 @@ module%test _ = struct
         let server_conn =
           server
             ~name:"server"
-              (* It might be confusing that the two "don't_use_in_production"
-                 files are used for different purposes. This is enough to test out
-                 the functionality, but if we want to be super clear we need 5
-                 such files in this library: ca crt, server key + crt, and client
-                 key + crt.*)
+              (* It might be confusing that the two "don't_use_in_production" files are
+                 used for different purposes. This is enough to test out the
+                 functionality, but if we want to be super clear we need 5 such files in
+                 this library: ca crt, server key + crt, and client key + crt. *)
             ~allowed_ciphers:`Secure
             ~ca_file:"do_not_use_in_production.crt" (* CA certificate *)
             ~crt_file:"do_not_use_in_production.crt" (* server certificate *)

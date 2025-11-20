@@ -60,8 +60,8 @@ let call_handler_and_cleanup ~outer_rd:_ ~outer_wr ~inner_rd ~inner_wr f =
        when flushing takes longer than 5 seconds, the writer is force-closed and
        application data is truncated.
 
-       Adding this wait is preferable to setting [Writer.close ~force_close] to ensure
-       we never leak file descriptors.
+       Adding this wait is preferable to setting [Writer.close ~force_close] to ensure we
+       never leak file descriptors.
     *)
     let%bind () = Writer.flushed_or_failed_unit inner_wr in
     (* Close writer before reader in-case they share the underlying FD *)
@@ -69,8 +69,8 @@ let call_handler_and_cleanup ~outer_rd:_ ~outer_wr ~inner_rd ~inner_wr f =
     Deferred.all_unit
       [ (* Close the reader for completeness *)
         Reader.close inner_rd
-      ; (* Wait for [Async_ssl] to close [outer_wr] in response to
-             [inner_wr] having been closed. *)
+      ; (* Wait for [Async_ssl] to close [outer_wr] in response to [inner_wr] having been
+           closed. *)
         Writer.close_finished outer_wr
       ])
 ;;
@@ -244,8 +244,8 @@ let wrap_client_connection = wrap_client_connection ~time_source
 module Expert = struct
   let connect ?interrupt ?timeout tls_settings where_to_connect =
     let conn_ivar = Ivar.create () in
-    (* This will raise if the connection fails to establish which will bubble
-       out to the enclosing monitor and avoid issues with the [Ivar] not getting filled. *)
+    (* This will raise if the connection fails to establish which will bubble out to the
+       enclosing monitor and avoid issues with the [Ivar] not getting filled. *)
     don't_wait_for
       (with_connection
          ?interrupt

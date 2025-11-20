@@ -15,8 +15,7 @@ module Certificate : sig
   type t
 
   (* Example:
-     [ ("C", "US"); ("ST", "NY"); ("L", "NY")
-     ; ("O", "Jane Street"); ("CN", "janestreet.com")]
+     [ ("C", "US"); ("ST", "NY"); ("L", "NY") ; ("O", "Jane Street"); ("CN", "janestreet.com")]
 
      You probably only care about CN.
   *)
@@ -41,8 +40,8 @@ end
 module Connection : sig
   type t [@@deriving sexp_of]
 
-  (* Becomes determined when the ssl session has terminated and cleaned
-     up. Includes the error in case of abnormal termination. *)
+  (* Becomes determined when the ssl session has terminated and cleaned up. Includes the
+     error in case of abnormal termination. *)
 
   val closed : t -> unit Or_error.t Deferred.t
 
@@ -50,8 +49,8 @@ module Connection : sig
 
   val close : t -> unit
 
-  (* Negotiated version. Not necessarily the same as what we passed as argument
-     to the [client] or [server] functions. *)
+  (* Negotiated version. Not necessarily the same as what we passed as argument to the
+     [client] or [server] functions. *)
 
   val version : t -> Version.t
 

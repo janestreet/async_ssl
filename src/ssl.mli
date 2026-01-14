@@ -32,10 +32,10 @@ module Session : sig
   val create : unit -> t
 end
 
-(* It is your responsibility to check that the session certificate satisfies
-   your expectations (for instance, that the CN (common name) on the certificate
-   matches the domain name you are intending to connect to). Same applies to the
-   negotiated version of the protocol.
+(* It is your responsibility to check that the session certificate satisfies your
+   expectations (for instance, that the CN (common name) on the certificate matches the
+   domain name you are intending to connect to). Same applies to the negotiated version of
+   the protocol.
 *)
 module Connection : sig
   type t [@@deriving sexp_of]

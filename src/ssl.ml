@@ -533,9 +533,9 @@ module Session = struct
   let reuse t ~conn = Option.iter (Set_once.get t) ~f:(State.reuse ~conn)
 end
 
-(* Global SSL contexts for every needed
-   (name, version, ca_file, ca_path, options, crt_file, key_file)
-   tuple. This is cached so that the same SSL_CTX object can be reused later *)
+(* Global SSL contexts for every needed (name, version, ca_file, ca_path, options,
+   crt_file, key_file) tuple. This is cached so that the same SSL_CTX object can be reused
+   later *)
 let context_exn =
   Memo.general
     (fun

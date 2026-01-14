@@ -64,7 +64,7 @@ let bigstring_strlen bigstr =
 
 let get_error_stack =
   let err_error_string =
-    (* We need to write error strings from C into bigstrings.  To reduce allocation, reuse
+    (* We need to write error strings from C into bigstrings. To reduce allocation, reuse
        scratch space for this. *)
     let scratch_space = Bigstring.create 1024 in
     fun err ->
@@ -128,7 +128,7 @@ module Ssl_ctx = struct
         in
         Unsigned.ULong.logor acc o)
     in
-    (* SSL_CTX_set_options(3) returns the new options bitmask after adding options.  We
+    (* SSL_CTX_set_options(3) returns the new options bitmask after adding options. We
        don't really have a use for this, so ignore. *)
     let (_ : Unsigned.ULong.t) = Bindings.Ssl_ctx.set_options context opts in
     ()
@@ -552,8 +552,8 @@ module Ssl = struct
           | Error hostname_error ->
             (match X509.check_ip cert name with
              | Ok () -> Ok ()
-             (* We prefer returning [hostname_error] and drop error output from
-                [check_ip] to avoid introducing more confusing output. *)
+             (* We prefer returning [hostname_error] and drop error output from [check_ip]
+                to avoid introducing more confusing output. *)
              | Error (_ : Error.t) -> Error hostname_error))
         ~finally:(fun () -> Bindings.X509.free cert)
   ;;

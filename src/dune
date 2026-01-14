@@ -24,11 +24,9 @@
   (language c)
   (names ffi_generated_stubs)
   (flags
-   (:standard \ -Werror -pedantic -Wall -Wunused -Wincompatible-pointer-types)
-   -w
-   (:include ../bindings/openssl-ccopt.sexp)
-   -Wno-int-conversion
-   -Wno-implicit-function-declaration))
+   :standard
+   -Wno-everything
+   (:include ../bindings/openssl-ccopt.sexp)))
  (name async_ssl)
  (public_name async_ssl)
  (modules import version opt verify_mode ffi_generated_types ffi_generated

@@ -198,13 +198,13 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   (* Some systems with older OpenSSL don't support TLS 1.1 and 1.2.
      https://github.com/janestreet/async_ssl/issues/3
 
-     This was originally solved by using [Ctypes_foreign.Foreign.foreign ~stub:true].
-     We now detect available symbols at compile time.
+     This was originally solved by using [Ctypes_foreign.Foreign.foreign ~stub:true]. We
+     now detect available symbols at compile time.
 
      Bindings are uniformly using stubs (no libffi dependency).
 
-     Note: using [Ctypes_foreign.Foreign.foreign ~stub:true] was failing (segfault)
-     with 32bit build on 64bit host.
+     Note: using [Ctypes_foreign.Foreign.foreign ~stub:true] was failing (segfault) with
+     32bit build on 64bit host.
   *)
   module Ssl_method = struct
     include Voidp (struct
@@ -310,10 +310,10 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     [%%endif]
     (*$*)
 
-    (* SSLv2 isn't secure, so we don't use it.  If you really really really need it, use
+    (* SSLv2 isn't secure, so we don't use it. If you really really really need it, use
        SSLv23 which will at least try to upgrade the security whenever possible.
 
-       let sslv2_method  = foreign "SSLv2_method"  ssl_method_t
+       let sslv2_method = foreign "SSLv2_method" ssl_method_t
     *)
   end
 
@@ -427,7 +427,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     (* for use in ctypes signatures *)
 
     (* Returns a [BIO *] that is later assigned to an [SSL] object by calling
-       SSL_set_bio(3).  The [BIO *] is freed automatically when calling SSL_free().
+       SSL_set_bio(3). The [BIO *] is freed automatically when calling SSL_free().
        (source: manpage of SSL_free(3)) *)
     let new_ = foreign "BIO_new" Ctypes.(ptr void @-> returning t)
     let s_mem = foreign "BIO_s_mem" Ctypes.(void @-> returning (ptr void))
@@ -464,14 +464,12 @@ module Bindings (F : Cstubs.FOREIGN) = struct
         let name = "X509_name_entry"
       end)
 
-    (* returns pointer to field in [t], do not free (source: x509name.c in openssl
-       source) *)
+    (* returns pointer to field in [t], do not free (source: x509name.c in openssl source) *)
     let get_object =
       foreign "X509_NAME_ENTRY_get_object" Ctypes.(t @-> returning ASN1_object.t)
     ;;
 
-    (* returns pointer to field in [t], do not free (source: x509name.c in openssl
-       source) *)
+    (* returns pointer to field in [t], do not free (source: x509name.c in openssl source) *)
     let get_data =
       foreign "X509_NAME_ENTRY_get_data" Ctypes.(t @-> returning ASN1_string.t)
     ;;
@@ -484,8 +482,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
     let entry_count = foreign "X509_NAME_entry_count" Ctypes.(t @-> returning int)
 
-    (* returns internal pointer, do not free (source: manpage of
-       X509_NAME_get_entry(3)) *)
+    (* returns internal pointer, do not free (source: manpage of X509_NAME_get_entry(3)) *)
     let get_entry =
       foreign "X509_NAME_get_entry" Ctypes.(t @-> int @-> returning X509_name_entry.t)
     ;;
@@ -504,8 +501,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
         let name = "X509"
       end)
 
-    (* returns internal pointer, do not free (source: manpage of
-       X509_get_subject_name(3)) *)
+    (* returns internal pointer, do not free (source: manpage of X509_get_subject_name(3)) *)
     let get_subject_name =
       foreign "X509_get_subject_name" Ctypes.(t @-> returning X509_name.t_opt)
     ;;

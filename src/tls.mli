@@ -11,6 +11,7 @@ val listen
   :  ?max_connections:int
   -> ?backlog:int
   -> ?buffer_age_limit:Async.Writer.buffer_age_limit
+  -> ?drop_incoming_connections:bool
   -> ?socket:([ `Unconnected ], ([< Socket.Address.t ] as 'socket)) Socket.t
   -> Config.Server.t
   -> ('socket, 'addr) Tcp.Where_to_listen.t
@@ -102,6 +103,7 @@ module For_testing : sig
     :  ?max_connections:int
     -> ?backlog:int
     -> ?buffer_age_limit:Async.Writer.buffer_age_limit
+    -> ?drop_incoming_connections:bool
     -> ?advance_clock_before_tls_negotiation:read_write Time_source.T1.t * Time_ns.Span.t
     -> ?socket:([ `Unconnected ], ([< Socket.Address.t ] as 'socket)) Socket.t
     -> Config.Server.t

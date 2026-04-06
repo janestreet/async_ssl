@@ -25,7 +25,8 @@
   (names ffi_generated_stubs)
   (flags
    :standard
-   -Wno-everything
+   -w
+   -Wno-incompatible-pointer-types
    (:include ../bindings/openssl-ccopt.sexp)))
  (name async_ssl)
  (public_name async_ssl)

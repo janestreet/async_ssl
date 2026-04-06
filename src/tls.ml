@@ -142,6 +142,7 @@ let listen
   ?max_connections
   ?backlog
   ?buffer_age_limit
+  ?drop_incoming_connections
   ?advance_clock_before_tls_negotiation
   ?socket
   tls_settings
@@ -153,6 +154,7 @@ let listen
     ?max_connections
     ?backlog
     ?buffer_age_limit
+    ?drop_incoming_connections
     ?socket
     ~on_handler_error
     where_to_listen

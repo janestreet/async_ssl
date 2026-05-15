@@ -159,9 +159,9 @@ val client
            [`Only (Ssl.secure_ciphers @ ["OLD_CIPHER"])]
 
            [1] Historically, [allowed_ciphers] was not a mandatory argument and [`Secure]
-           was not the default for backwards-compatibility reasons. However, in early 2018
-           [`Secure] became the default to at least force users to think about this if
-           they want something less secure. *)
+               was not the default for backwards-compatibility reasons. However, in early
+               2018 [`Secure] became the default to at least force users to think about
+               this if they want something less secure. *)
   -> ?allowed_ciphers:[ `Secure | `Openssl_default | `Only of string list ]
   -> ?ca_file:string
   -> ?ca_path:string

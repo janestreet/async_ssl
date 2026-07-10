@@ -341,16 +341,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     foreign "ERR_load_crypto_strings" Ctypes.(void @-> returning void)
   ;;
 
-  module Engine = struct
-    let load_builtin_engines =
-      foreign "ENGINE_load_builtin_engines" Ctypes.(void @-> returning void)
-    ;;
-
-    let register_all_complete =
-      foreign "ENGINE_register_all_complete" Ctypes.(void @-> returning void)
-    ;;
-  end
-
   module Ssl_ctx = struct
     include Voidp (struct
         let name = "Ssl_ctx"

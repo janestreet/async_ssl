@@ -21,10 +21,6 @@ let initialize () =
     Bindings.err_load_crypto_strings ();
     (* Use /etc/ssl/openssl.conf or similar *)
     Bindings.openssl_config None;
-    (* Make hardware accelaration available *)
-    Bindings.Engine.load_builtin_engines ();
-    (* Finish engine registration *)
-    Bindings.Engine.register_all_complete ();
     (* SSL_library_init() initializes the SSL algorithms. It always returns "1", so it is
        safe to discard the return value *)
     ignore (Bindings.init () : Unsigned.ulong);

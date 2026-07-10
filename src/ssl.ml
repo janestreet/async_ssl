@@ -538,6 +538,7 @@ end
    later *)
 let context_exn =
   Memo.general
+    ~hashable:Hashtbl.Hashable.poly
     (fun
         ( name
         , version

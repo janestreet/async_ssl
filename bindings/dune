@@ -3,7 +3,7 @@
  (deps
   (:first_dep config/discover.exe))
  (action
-  (run %{first_dep})))
+  (bash %{first_dep})))
 
 (rule
  (targets discover.exe)
